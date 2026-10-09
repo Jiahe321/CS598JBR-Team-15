@@ -1,0 +1,2 @@
+- Deed of random selection should be fix?
+- should compare trimmed answer?

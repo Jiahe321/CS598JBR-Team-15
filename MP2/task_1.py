@@ -1,6 +1,8 @@
 import jsonlines
 import sys
 import torch
+import re
+import random
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 #####################################################
@@ -15,20 +17,95 @@ def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct
     print(f"Working with {model_name} prompt type {vanilla}...")
     
     # TODO: download the model
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+
     # TODO: load the model with quantization
-    
+    model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            trust_remote_code=True,
+            device_map='auto',
+            torch_dtype=torch.bfloat16,
+            quantization_config=BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type='nf4'
+            ),
+        )
+
     results = []
     for entry in dataset:
         # TODO: create prompt for the model
-        # Tip : Use can use any data from the dataset to create 
+        # Tip : Use can use any data from the dataset to create
         #       the prompt including prompt, canonical_solution, test, etc.
-        prompt = ""
-        
+        test_code = entry.get("test", "")
+
+        matches = re.findall(r"assert\s+candidate\((.*?)\)\s*==\s*(.*?)(?=\n|$)", test_code)
+
+        if matches:
+            input_str, expected_raw = random.choice(matches)
+            input_str = input_str.strip()
+            expected_raw = expected_raw.strip()
+            
+            err_match = re.search(r'^(.*?)(?:,\s*["\'].*?["\'])\s*$', expected_raw)
+            if err_match:
+                expected_str = err_match.group(1).strip()
+            else:
+                expected_str = expected_raw
+        else:
+            input_str = ""
+            expected_str = ""
+
+        def_match = re.search(r'(def\s+\w+\s*\(.*?\)\s*(?:->\s*[^:]+)?:)', entry["prompt"], re.DOTALL)
+        if def_match:
+            func_signature = def_match.group(1)
+        else:
+            func_signature = entry["prompt"].strip().split('\n')[0]
+
+        full_code = func_signature + "\n" + entry["canonical_solution"]
+
+        if vanilla:
+          prompt = """You are an AI programming assistant. You are an AI programming assistant, utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
+
+### Instruction:
+If the string is {selected_candidate}, what will the following code return?
+The return value prediction must be enclosed between [Output] and [/Output] tags. For example: [Output]prediction[/Output]
+
+{full_code}
+
+### Response:"""
+        prompt = prompt.format(selected_candidate=repr(input_str), full_code=full_code)
+
         # TODO: prompt the model and get the response
-        response = ""
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_length=800,
+                do_sample=False,
+                temperature=0,
+                pad_token_id=tokenizer.eos_token_id
+            )
+
+        response = tokenizer.decode(
+            outputs[0][inputs["input_ids"].shape[1]:],
+            skip_special_tokens=True
+        )
 
         # TODO: process the response and save it to results
+        m = re.search(r"\[Output\]\s*(.*?)\s*\[/Output\]", response, re.DOTALL)
+        if not m:
+          m = re.search(r"\[Output\]\s*(.+?)(?:\n|$)", response)
+        model_result = m.group(1).strip() if m else ""
+
         verdict = False
+
+        # For debug
+        print(model_result, expected_str)
+
+        if model_result == expected_str:
+          verdict = True
 
         print(f"Task_ID {entry['task_id']}:\nprompt:\n{prompt}\nresponse:\n{response}\nis_correct:\n{verdict}")
         results.append({
