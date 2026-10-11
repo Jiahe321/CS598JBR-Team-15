@@ -38,29 +38,47 @@ def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct
         # TODO: create prompt for the model
         # Tip : Use can use any data from the dataset to create
         #       the prompt including prompt, canonical_solution, test, etc.
+        import ast, math
         test_code = entry.get("test", "")
 
-        matches = re.findall(r"assert\s+candidate\((.*?)\)\s*==\s*(.*?)(?=\n|$)", test_code)
+        # Ground truth = run the canonical solution on inputs taken from the test code.
+        # The prompt prefix (imports / helper functions) is executed together with the solution.
+        env = {}
+        exec(entry["prompt"] + entry["canonical_solution"], env)
+        solution = env[entry["entry_point"]]
+        exec(test_code, env)
 
-        if matches:
+        # Collect every `candidate(...)` call in the test (works for ==, abs(...) < eps, assert not, ...)
+        candidates = []
+        for node in ast.walk(ast.parse(test_code)):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                    and node.func.id == "candidate" and node.args and not node.keywords):
+                try:
+                    arg_srcs = [ast.get_source_segment(test_code, a) for a in node.args]
+                    arg_vals = [eval(s, env) for s in arg_srcs]      # fails (skipped) if args use loop vars etc.
+                    expected_val = solution(*arg_vals)
+                    ast.literal_eval(repr(expected_val))             # keep only literal-comparable outputs
+                    arg_str = ", ".join(arg_srcs)
+                    if len(arg_str) <= 200 and len(repr(expected_val)) <= 200:
+                        candidates.append((arg_str, expected_val))
+                except Exception:
+                    continue
+
+        if candidates:
             # Fix Seed
-            rng = random.Random(f"{42}-{entry['task_id']}") 
-            input_str, expected_raw = rng.choice(matches)
-            input_str = input_str.strip()
-            expected_raw = expected_raw.strip()
-            
-            err_match = re.search(r'^(.*?)(?:,\s*["\'].*?["\'])\s*$', expected_raw)
-            if err_match:
-                expected_str = err_match.group(1).strip()
-            else:
-                expected_str = expected_raw
+            rng = random.Random(f"{42}-{entry['task_id']}")
+            selected_candidate, expected_val = rng.choice(candidates)
+            expected_str = repr(expected_val)
         else:
-            input_str = ""
+            selected_candidate = ""
+            expected_val = None
             expected_str = ""
 
-        def_match = re.search(r'(def\s+\w+\s*\(.*?\)\s*(?:->\s*[^:]+)?:)', entry["prompt"], re.DOTALL)
+        # Signature of the entry-point function (docstring dropped, so examples do not leak the answer);
+        # everything before it in the prompt (imports / helper functions) is kept.
+        def_match = re.search(r'(def\s+' + re.escape(entry["entry_point"]) + r'\s*\(.*?\)\s*(?:->\s*[^:]+)?:)', entry["prompt"], re.DOTALL)
         if def_match:
-            func_signature = def_match.group(1)
+            func_signature = entry["prompt"][:def_match.start()] + def_match.group(1)
         else:
             func_signature = entry["prompt"].strip().split('\n')[0]
 
@@ -78,16 +96,42 @@ The return value prediction must be enclosed between [Output] and [/Output] tags
 ### Response:"""
         else:
           prompt = """You are an AI programming assistant, utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
-
 ### Instruction:
-If the string is {selected_candidate}, what will the following code return?
-The return value prediction must be enclosed between [Output] and [/Output] tags. For example: [Output]prediction[/Output]
-Reason step by step to solve the problem.
+Predict what the code returns for the given input by tracing it step by step, exactly like a Python interpreter would.
+1. Write down the input values, then trace the execution line by line (loops iteration by iteration). After every change, write the new value of each affected variable. Do all arithmetic explicitly.
+2. Only after the trace, give the final result as a Python literal: strings in quotes, lists in brackets, True/False/None, floats as Python prints them (e.g. 2.0).
+3. The final answer must be enclosed ONCE between [Output] and [/Output] tags, e.g. [Output]prediction[/Output], and nothing may be written after [/Output].
 
+### Example
+## Code
+def f(nums, k):
+    out = []
+    for n in nums:
+        if n % k == 0:
+            out.append(n / k)
+    return out
+
+## Question
+If the input is [4, 7, 8], 2, what will the code return?
+
+## Response:
+nums = [4, 7, 8], k = 2, out = [].
+n = 4: 4 % 2 = 0, so append 4 / 2 = 2.0, out = [2.0].
+n = 7: 7 % 2 = 1, not appended, out = [2.0].
+n = 8: 8 % 2 = 0, so append 8 / 2 = 4.0, out = [2.0, 4.0].
+The function returns out = [2.0, 4.0].
+[Output][2.0, 4.0][/Output]
+
+### Now solve this one
+## Code
 {full_code}
 
-### Response:"""
-        prompt = prompt.format(selected_candidate=repr(input_str), full_code=full_code)
+## Question
+If the input is {selected_candidate}, what will the code return?
+
+### Response:
+"""
+        prompt = prompt.format(selected_candidate=selected_candidate, full_code=full_code)
 
         # TODO: prompt the model and get the response
         inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
@@ -95,9 +139,8 @@ Reason step by step to solve the problem.
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_length=800,
+                max_new_tokens=512,
                 do_sample=False,
-                temperature=0,
                 pad_token_id=tokenizer.eos_token_id
             )
 
@@ -107,18 +150,28 @@ Reason step by step to solve the problem.
         )
 
         # TODO: process the response and save it to results
-        m = re.search(r"\[Output\]\s*(.*?)\s*\[/Output\]", response, re.DOTALL)
-        if not m:
+        outs = re.findall(r"\[Output\]\s*(.*?)\s*\[/Output\]", response, re.DOTALL)
+        if outs:
+          # vanilla: first answer; step-by-step prompt: the final answer comes last
+          model_result = (outs[0] if vanilla else outs[-1]).strip().strip("`").strip()
+        else:
           m = re.search(r"\[Output\]\s*(.+?)(?:\n|$)", response)
-        model_result = m.group(1).strip() if m else ""
+          model_result = m.group(1).strip().strip("`").strip() if m else ""
 
         verdict = False
 
         # For debug
         print(model_result, expected_str)
 
-        if model_result == expected_str:
-          verdict = True
+        # Compare values, not strings: 'a' vs "a", 1.0 vs 1.00, spacing in lists, ...
+        try:
+          model_val = ast.literal_eval(model_result)
+          if isinstance(expected_val, float) and isinstance(model_val, (int, float)) and not isinstance(model_val, bool):
+            verdict = math.isclose(model_val, expected_val, rel_tol=1e-3, abs_tol=1e-3)
+          else:
+            verdict = (model_val == expected_val and type(model_val) == type(expected_val))
+        except Exception:
+          verdict = (model_result == expected_str)
 
         print(f"Task_ID {entry['task_id']}:\nprompt:\n{prompt}\nresponse:\n{response}\nis_correct:\n{verdict}")
         results.append({
