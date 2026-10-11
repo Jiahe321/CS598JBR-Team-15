@@ -16,9 +16,6 @@ def save_file(content, file_path):
 def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct", vanilla = True):
     print(f"Working with {model_name} prompt type {vanilla}...")
 
-    # Fix the seed
-    random.seed(42)
-    
     # TODO: download the model
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 
@@ -46,7 +43,9 @@ def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct
         matches = re.findall(r"assert\s+candidate\((.*?)\)\s*==\s*(.*?)(?=\n|$)", test_code)
 
         if matches:
-            input_str, expected_raw = random.choice(matches)
+            # Fix Seed
+            rng = random.Random(f"{42}-{entry['task_id']}") 
+            input_str, expected_raw = rng.choice(matches)
             input_str = input_str.strip()
             expected_raw = expected_raw.strip()
             
@@ -73,6 +72,17 @@ def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct
 ### Instruction:
 If the string is {selected_candidate}, what will the following code return?
 The return value prediction must be enclosed between [Output] and [/Output] tags. For example: [Output]prediction[/Output]
+
+{full_code}
+
+### Response:"""
+        else:
+          prompt = """You are an AI programming assistant, utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
+
+### Instruction:
+If the string is {selected_candidate}, what will the following code return?
+The return value prediction must be enclosed between [Output] and [/Output] tags. For example: [Output]prediction[/Output]
+Reason step by step to solve the problem.
 
 {full_code}
 
