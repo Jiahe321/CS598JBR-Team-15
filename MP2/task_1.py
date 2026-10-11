@@ -15,6 +15,9 @@ def save_file(content, file_path):
 
 def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct", vanilla = True):
     print(f"Working with {model_name} prompt type {vanilla}...")
+
+    # Fix the seed
+    random.seed(42)
     
     # TODO: download the model
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
