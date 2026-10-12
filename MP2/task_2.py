@@ -129,6 +129,22 @@ Generate a pytest test suite for the following code.
 Only write unit tests in the output and nothing else.
 {full_code}
 ### Response:"""
+        else:
+            prompt = """You are an AI programming assistant. You are an AI programming assistant, utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
+
+### Instruction:
+Generate a comprehensive pytest test suite for the following code.
+Please follow this requirement:
+1. Pay special attention to all if-else statements, conditional branches, and boundary/edge cases to achieve full code coverage.
+2. Outline a brief plan in comments for testing each branch and edge case before writing the tests. No more than 5 lines
+3. Only write unit tests in the output and nothing else.
+4. No need to repeat the given code in the output, only write the test suite.
+5. Put your entire output (plan comments and unit tests) inside a single ```python ... ``` markdown code block.
+### Code:
+{full_code}
+
+### Response:"""
+
         prompt = prompt.format(full_code=full_code)
 
         # TODO: prompt the model and get the response
@@ -175,6 +191,22 @@ Only write unit tests in the output and nothing else.
         response = re.sub(r'from\s+([a-zA-Z_]\w*)\s+import', replacer, response)
         import_statement = f"from {task_id_safe} import *\n"
         response = split_asserts(response, truncated=truncated)
+        lines = response.split('\n')
+        filtered_lines = []
+        skip = False
+
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('def ') and not stripped.startswith('def test_'):
+                skip = True
+            elif stripped.startswith('def test_'):
+                skip = False
+
+            if not skip:
+                filtered_lines.append(line)
+
+        response = '\n'.join(filtered_lines)
+
         if f"from {task_id_safe}" not in response and f"import {task_id_safe}" not in response:
             response = import_statement + response
 
