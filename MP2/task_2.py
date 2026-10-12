@@ -6,6 +6,7 @@ import sys
 import torch
 import re
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+import ast
 
 
 #####################################################
@@ -15,6 +16,72 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 def save_file(content, file_path):
     with open(file_path, 'w') as file:
         file.write(content)
+
+
+def _drop_last_stmt(stmts):
+    if not stmts:
+        return
+    last = stmts[-1]
+    inner = getattr(last, "body", None)
+    if isinstance(last, (ast.FunctionDef, ast.With, ast.For, ast.If)) and inner:
+        _drop_last_stmt(inner)
+        if not inner:
+            stmts.pop()
+    else:
+        stmts.pop()
+
+
+def split_asserts(code, truncated=False):
+    lines = code.split("\n")
+    tree = None
+    while lines:
+        try:
+            tree = ast.parse("\n".join(lines))
+            break
+        except SyntaxError:
+            lines.pop()
+    if tree is None:
+        return ""
+
+    if truncated:
+        _drop_last_stmt(tree.body)
+
+    new_body = []
+    for node in tree.body:
+        if not (isinstance(node, ast.FunctionDef) and node.name.startswith("test")):
+            if isinstance(node, ast.Assert):
+                node = ast.FunctionDef(
+                    name="test_module_level", args=ast.arguments(
+                        posonlyargs=[], args=[], kwonlyargs=[],
+                        kw_defaults=[], defaults=[]),
+                    body=[node], decorator_list=[])
+            else:
+                new_body.append(node)
+                continue
+
+        setup, count, produced = [], 0, []
+        for stmt in node.body:
+            is_assert = isinstance(stmt, ast.Assert)
+            is_compound_check = (
+                                        not is_assert
+                                        and isinstance(stmt, (ast.With, ast.For, ast.If))
+                                        and any(isinstance(n, ast.Assert) for n in ast.walk(stmt))
+                                ) or isinstance(stmt, ast.With)
+            if is_assert or is_compound_check:
+                count += 1
+                produced.append(ast.FunctionDef(
+                    name=f"{node.name}_{count}",
+                    args=node.args,
+                    body=list(setup) + [stmt],
+                    decorator_list=node.decorator_list,
+                ))
+            else:
+                setup.append(stmt)
+        new_body.extend(produced if produced else [node])
+
+    tree.body = new_body
+    ast.fix_missing_locations(tree)
+    return ast.unparse(tree)
 
 
 def prompt_model(dataset, model_name="deepseek-ai/deepseek-coder-6.7b-instruct", vanilla=True):
@@ -78,7 +145,7 @@ Only write unit tests in the output and nothing else.
                 pad_token_id=tokenizer.eos_token_id
             )
         generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
+        truncated = outputs.shape[1] >= 1000
         if "<|assistant|>" in generated_text:
             response = generated_text.split("<|assistant|>")[-1].strip()
         else:
@@ -93,7 +160,8 @@ Only write unit tests in the output and nothing else.
                     break
             response = selected_block.strip()
         else:
-            response = response.strip()
+            response = re.sub(r'^```(?:python)?', '', response.strip()).strip()
+            response = response.split("```")[0].strip()
         response = response.replace("from your_module import", f"from {task_id_safe} import")
         response = response.replace("from module import", f"from {task_id_safe} import")
         response = response.replace("import your_module", f"import {task_id_safe}")
@@ -105,6 +173,10 @@ Only write unit tests in the output and nothing else.
             return f"from {task_id_safe} import"
 
         response = re.sub(r'from\s+([a-zA-Z_]\w*)\s+import', replacer, response)
+        import_statement = f"from {task_id_safe} import *\n"
+        response = split_asserts(response, truncated=truncated)
+        if f"from {task_id_safe}" not in response and f"import {task_id_safe}" not in response:
+            response = import_statement + response
 
         code_file_path = f"MP2/{task_id_safe}.py"
         save_file(full_code, code_file_path)
@@ -118,7 +190,7 @@ Only write unit tests in the output and nothing else.
             sys.executable, "-m", "pytest",
             test_file_path,
             f"--cov={task_id_safe}",
-            f"--cov-report", f"json:{coverage_json_path}"
+            f"--cov-report=json:{coverage_json_path}"
         ]
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
