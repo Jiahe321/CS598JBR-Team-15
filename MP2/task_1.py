@@ -66,7 +66,7 @@ def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct
 
         if candidates:
             # Fix Seed
-            rng = random.Random(f"{42}-{entry['task_id']}")
+            rng = random.Random(f"{11037}-{entry['task_id']}")
             selected_candidate, expected_val = rng.choice(candidates)
             expected_str = repr(expected_val)
         else:
@@ -152,8 +152,7 @@ If the input is {selected_candidate}, what will the code return?
         # TODO: process the response and save it to results
         outs = re.findall(r"\[Output\]\s*(.*?)\s*\[/Output\]", response, re.DOTALL)
         if outs:
-          # vanilla: first answer; step-by-step prompt: the final answer comes last
-          model_result = (outs[0] if vanilla else outs[-1]).strip().strip("`").strip()
+          model_result = outs[0].strip().strip("`").strip()
         else:
           m = re.search(r"\[Output\]\s*(.+?)(?:\n|$)", response)
           model_result = m.group(1).strip().strip("`").strip() if m else ""
