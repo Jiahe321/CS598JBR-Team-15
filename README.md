@@ -7,5 +7,5 @@
 
 ## Link of Google Colab Notebook
 - MP1 - [link](https://colab.research.google.com/drive/1XYp554pZmtl6iUdMdKdNmiMecX3hYivl?usp=sharing) 
-- MP2 - [link](URL) (please add the link here)
+- MP2 - [link](https://drive.google.com/file/d/18ovDtWZreqqBzVe_fMkt_4T8HCydc7Hz/view?usp=sharing)
 - MP3 - [link](URL) (please add the link here)
