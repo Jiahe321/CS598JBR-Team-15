@@ -2,6 +2,10 @@ import jsonlines
 import sys
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+import re
+import tempfile
+import os
+import subprocess
 
 #####################################################
 # Please finish all TODOs in this file for MP3/task_1;
@@ -15,21 +19,136 @@ def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct
     print(f"Working with {model_name} prompt type {vanilla}...")
     
     # TODO: download the model
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+
     # TODO: load the model with quantization
-    
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        trust_remote_code=True,
+        device_map='auto',
+        torch_dtype=torch.bfloat16,
+        quantization_config=BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_quant_type='nf4'
+        ),
+    )
+
+    import glob
+ 
+    def _num(task_id):
+        return str(task_id).split("/")[-1]
+ 
+    needed = {_num(e["task_id"]) for e in dataset}
+    java_map = {}
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    search_dirs = [os.getcwd(), script_dir, os.path.dirname(script_dir)]
+    for dd in search_dirs:
+        for path in sorted(glob.glob(os.path.join(dd, "selected_humanevalx_java_*.jsonl"))):
+            with jsonlines.open(path) as reader:
+                recs = {_num(r["task_id"]): r for r in reader}
+            if needed <= set(recs):
+                java_map = recs
+                break
+        if java_map:
+            break
+
     results = []
     for entry in dataset:
         # TODO: create prompt for the model
         # Tip : Use can use any data from the dataset to create 
         #       the prompt including prompt, canonical_solution, test, etc.
-        prompt = ""
-        
-        # TODO: prompt the model and get the response
-        response = ""
+        # Java declaration / test for this problem (HumanEval/N <-> Java/N)
+        java_rec = java_map[_num(entry["task_id"])]
+        test_code = java_rec["test"]
+        java_decl = java_rec["declaration"]
+ 
+        # Signature of the (last) Python function in the prompt (docstring dropped, so examples
+        # do not leak the answer); everything before it (imports / helper functions) is kept.
+        fn_name = re.escape(entry["entry_point"]) if entry.get("entry_point") else r"\w+"
+        def_matches = list(re.finditer(
+            r'def\s+' + fn_name + r'\s*\(.*?\)\s*(?:->\s*[^:]+)?:',
+            entry["prompt"], re.DOTALL
+        ))
+        if def_matches:
+            dm = def_matches[-1]
+            func_signature = entry["prompt"][:dm.start()] + dm.group(0)
+        else:
+            func_signature = entry["prompt"].strip().split('\n')[0]
+        full_code = func_signature + "\n" + entry["canonical_solution"]
 
+        if vanilla:
+            prompt = """You are an AI programming assistant utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
+  
+### Instruction:
+ 
+Can you translate the following Python code into Java?
+ 
+The new Java code must be enclosed between [Java Start] and [Java End]
+{full_code}
+### Response:"""
+        else:
+            # TODO: crafted prompt
+            prompt = """"""
+ 
+        # str.replace instead of str.format, so curly braces inside the code can't break the template
+        prompt = prompt.replace("{full_code}", full_code)
+        # TODO: prompt the model and get the response
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=1024,
+                do_sample=False,
+                pad_token_id=tokenizer.eos_token_id
+            )
+        response = tokenizer.decode(
+            outputs[0][inputs["input_ids"].shape[1]:],
+            skip_special_tokens=True
+        )
+ 
         # TODO: process the response and save it to results
+        m = re.search(r"\[Java Start\]\s*(.*?)\s*\[Java End\]", response, re.DOTALL)
+        if m:
+            model_result = m.group(1)
+        else:
+            # no closing tag (e.g. truncated output): take everything after [Java Start]
+            m = re.search(r"\[Java Start\]\s*(.*)", response, re.DOTALL)
+            model_result = m.group(1) if m else ""
+        # strip possible ```java code fences
+        model_result = re.sub(r"^```(?:java)?\s*|\s*```$", "", model_result.strip()).strip()
+        if "class Solution" in model_result:
+            model_result = model_result.replace("public class Solution", "class Solution")
+        else:
+            # model used another class name (e.g. `public class Main`): rename it to Solution
+            model_result = re.sub(r"(?:public\s+)?class\s+\w+", "class Solution", model_result, count=1)
+ 
         verdict = False
 
+        # For debug
+        # print(model_result)
+        if model_result:
+            # everything before "class Solution" in the Java declaration is the import section
+            header = java_decl.split("class Solution")[0] if java_decl else "import java.util.*;\nimport java.lang.*;\n"
+            if "class Solution" in model_result:
+                src = header + model_result
+            else:
+                src = header + "class Solution {\n" + model_result + "\n}\n"
+            src += "\n" + test_code  # Java test (contains `public class Main`)
+ 
+            with tempfile.TemporaryDirectory() as d:
+                with open(os.path.join(d, "Main.java"), "w") as f:
+                    f.write(src)
+                try:
+                    c = subprocess.run(["javac", "Main.java"], cwd=d,
+                                       capture_output=True, text=True, timeout=60)
+                    if c.returncode == 0:
+                        r = subprocess.run(["java", "Main"], cwd=d,
+                                           capture_output=True, text=True, timeout=30)
+                        verdict = (r.returncode == 0)
+                except subprocess.TimeoutExpired:
+                    verdict = False
         print(f"Task_ID {entry['task_id']}:\nprompt:\n{prompt}\nresponse:\n{response}\nis_expected:\n{verdict}")
         results.append({
             "task_id": entry["task_id"],
