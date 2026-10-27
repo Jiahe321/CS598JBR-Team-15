@@ -92,15 +92,16 @@ Is the above code buggy or correct? Please explain your step by step reasoning. 
             prompt = """You are an AI programming assistant. You are an AI programming assistant utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
 ### Instruction:
 
-Below is a Python function with a docstring that specifies its intended behavior. Decide whether the implementation is Buggy (it violates the docstring for at least one input) or Correct (it matches the docstring for all inputs). Do not assume the code is correct just because it looks reasonable: subtle bugs such as a wrong operator, a wrong variable, a wrong constant, a missing check, or an extra condition are common.
+Below is a Python function with a docstring that specifies its intended behavior. Decide whether the implementation is Buggy (it violates the docstring for at least one input) or Correct (it matches the docstring for every input).
+
+Be a strict code reviewer. Implementations in this task often contain one small hidden bug: a wrong comparison or arithmetic operator, a wrong variable, a wrong constant or index, a missing step (such as a missing abs, sort, strip or return), or an extra condition. Code that looks reasonable can still be buggy.
 
 Follow these steps exactly:
-Step 1 - Specification: state in one sentence what the docstring says the function must do.
-Step 2 - Trace: take the first example from the docstring, execute the code line by line with that input, and write the value the code actually returns.
-Step 3 - Compare: write the output the docstring expects and say whether it equals the traced output. Also check edge cases (empty input, zero, negative numbers, boundaries, off-by-one) against the specification.
-Step 4 - Inspect: check each operator, variable name, constant and condition in the code against the specification and name any that is wrong.
-Step 5 - Conclusion: if any mismatch or wrong line was found, the answer is Buggy; otherwise it is Correct.
-The final prediction must be enclosed within <start> and <end> tags, for example <start>Buggy<end>.
+Step 1 - Requirements: list every behavior the docstring requires as R1, R2, ... (what is returned, ordering, rounding, handling of special or edge inputs).
+Step 2 - Check each requirement: for each Ri, quote the exact line of code that implements it, then write OK only if that line does exactly what Ri says. Write VIOLATED if the line is missing, uses the wrong operator, variable or constant, or does something extra.
+Step 3 - Example: run the first docstring example through the code one statement at a time. Write "Expected:" with the output copied from the docstring and "Actual:" with the value the code really produces. Do not copy the expected value into Actual.
+Step 4 - Decision: answer Buggy if any requirement is VIOLATED, if Expected differs from Actual, or if you could not verify some requirement. Answer Correct only if every requirement is OK and Expected equals Actual.
+Write the final prediction within <start> and <end> tags, for example <start>Buggy<end>, and stop writing after that tag.
 
 Example 1:
 def count_even(numbers: List[int]) -> int:
@@ -113,26 +114,27 @@ def count_even(numbers: List[int]) -> int:
         if n % 2 == 1:
             count += 1
     return count
-Step 1 - Specification: the function counts the even numbers.
-Step 2 - Trace: for [1, 2, 4], only 1 satisfies n % 2 == 1, so count becomes 1 and the code returns 1.
-Step 3 - Compare: the docstring expects 2, but the code returns 1, so the output differs.
-Step 4 - Inspect: the condition n % 2 == 1 selects odd numbers, but even numbers are required.
-Step 5 - Conclusion: the traced output contradicts the docstring.
+Step 1 - Requirements: R1: count the even numbers. R2: return the count as an integer.
+Step 2 - Check: R1: `if n % 2 == 1:` selects odd numbers, so VIOLATED. R2: `return count` returns an integer, OK.
+Step 3 - Example: for [1, 2, 4], only 1 satisfies n % 2 == 1, so count is 1. Expected: 2. Actual: 1.
+Step 4 - Decision: R1 is VIOLATED and Expected differs from Actual.
 <start>Buggy<end>
 
 Example 2:
-def last_item(items: List[int]) -> int:
-    \"\"\" Return the last element of a non-empty list.
-    >>> last_item([3, 5, 9])
-    9
+def sum_abs(numbers: List[int]) -> int:
+    \"\"\" Return the sum of the absolute values of the numbers.
+    >>> sum_abs([-1, 2, -3])
+    6
     \"\"\"
-    return items[-1]
-Step 1 - Specification: the function returns the last element of the list.
-Step 2 - Trace: for [3, 5, 9], items[-1] is 9, so the code returns 9.
-Step 3 - Compare: the docstring expects 9 and the code returns 9. The only valid inputs are non-empty lists, and items[-1] is correct for every one of them.
-Step 4 - Inspect: the index -1 is the correct index for the last element and there are no extra conditions.
-Step 5 - Conclusion: no mismatch was found.
-<start>Correct<end>
+    total = 0
+    for n in numbers:
+        total += n
+    return total
+Step 1 - Requirements: R1: add up the absolute value of every number. R2: return the total.
+Step 2 - Check: R1: `total += n` adds n itself and never takes the absolute value, so VIOLATED. R2: `return total` is OK.
+Step 3 - Example: for [-1, 2, -3], total is -1 + 2 - 3 = -2. Expected: 6. Actual: -2.
+Step 4 - Decision: R1 is VIOLATED and Expected differs from Actual.
+<start>Buggy<end>
 
 Now analyze this function:
 {full_code}
