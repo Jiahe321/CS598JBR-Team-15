@@ -89,8 +89,54 @@ The new Java code must be enclosed between [Java Start] and [Java End]
 {full_code}
 ### Response:"""
         else:
-            # TODO: crafted prompt
-            prompt = """"""
+            # Crafted prompt: exact Java signatures from the HumanEval-X declaration, strict output
+            # format (no main/test code), type-mapping hints, and one worked example.
+            java_sigs = "\n".join(
+                m.strip() for m in re.findall(r'^[ \t]*public[^\n{;]*\([^)]*\)[^\n{;]*\{', java_decl, re.M)
+            )
+            prompt = """You are an AI programming assistant utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
+
+### Instruction:
+
+Translate the following Python code into Java.
+
+Requirements:
+1. Put ALL translated methods inside a single class named `Solution`. Use `import java.util.*;` at the top if you need it.
+2. Use exactly these method signatures (same names, parameter types and return types), because a test harness will call them on a `Solution` object:
+{java_sigs}
+3. Translate every Python function, including helper functions.
+4. Do NOT write a `main` method, test code, `System.out.println` calls or example usage.
+5. Preserve the exact behavior of the Python code. Python `//` is integer division, Python lists map to `List<...>` (use `ArrayList`), Python tuples/mixed lists map to `List<Object>`, and Python `str` slicing maps to `substring`.
+6. Enclose the complete Java code between [Java Start] and [Java End]. Write nothing else after [Java End].
+
+Example.
+Python code:
+def add_pairs(numbers: List[int], k: int) -> List[int]:
+    result = []
+    for n in numbers:
+        result.append(n // k + 1)
+    return result
+Java signature:
+public List<Integer> addPairs(List<Integer> numbers, int k) {
+Answer:
+[Java Start]
+import java.util.*;
+
+class Solution {
+    public List<Integer> addPairs(List<Integer> numbers, int k) {
+        List<Integer> result = new ArrayList<>();
+        for (int n : numbers) {
+            result.add(n / k + 1);
+        }
+        return result;
+    }
+}
+[Java End]
+
+Now translate this Python code:
+{full_code}
+### Response:"""
+            prompt = prompt.replace("{java_sigs}", java_sigs)
  
         # str.replace instead of str.format, so curly braces inside the code can't break the template
         prompt = prompt.replace("{full_code}", full_code)

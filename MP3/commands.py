@@ -4,7 +4,7 @@
 
 # TODO: Clone your GitHub repository
 ! git clone https://github.com/Jiahe321/CS598JBR-Team-15
-! cd CS598JBR-Team-15/MP3
+%cd CS598JBR-Team-15/MP3
 
 # TODO: Update seed generated in MP1
 seed = "321382094412981684703514110866276495525"
