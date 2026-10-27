@@ -72,6 +72,17 @@ def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct
         ),
     )
     
+    def generate(text, max_new_tokens):
+        inputs = tokenizer(text, return_tensors="pt").to(model.device)
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+                pad_token_id=tokenizer.eos_token_id
+            )
+        return tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+
     results = []
     for entry in dataset:
         # TODO: create prompt for the model
@@ -86,73 +97,95 @@ def prompt_model(dataset, model_name = "deepseek-ai/deepseek-coder-6.7b-instruct
 Is the above code buggy or correct? Please explain your step by step reasoning. The prediction should be enclosed within <start> and <end> tags. For example: <start>Buggy<end>
 ### Response:"""
         else:
-            # Crafted prompt: include the docstring (the specification), prescribe explicit
-            # reasoning steps, and give one buggy and one correct worked example.
-            full_code = entry["prompt"] + entry["buggy_solution"]
+            # Crafted prompt (two stages). Stage 1: the model writes its own implementation from the
+            # docstring alone, which it does far better than judging code. Stage 2: it lists the
+            # behavior-changing differences between that reference and the candidate code.
+            spec = entry["prompt"]
+            stage1 = """You are an AI programming assistant utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
+### Instruction:
+
+Complete the following Python function so that it satisfies its docstring exactly. Output only the complete function in a single ```python code block, with no explanation.
+{spec}
+### Response:""".replace("{spec}", spec)
+            reference = generate(stage1, 512)
+            m = re.search(r"```(?:python)?\s*(.*?)(?:```|$)", reference, re.DOTALL)
+            reference = (m.group(1) if m else reference).strip()
+            full_code = entry["buggy_solution"].rstrip()
             prompt = """You are an AI programming assistant. You are an AI programming assistant utilizing the DeepSeek Coder model, developed by DeepSeek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer.
 ### Instruction:
 
-Below is a Python function with a docstring that specifies its intended behavior. Decide whether the implementation is Buggy (it violates the docstring for at least one input) or Correct (it matches the docstring for every input).
+You are reviewing a Python function. First read its specification, then compare the candidate implementation with a reference implementation that was written independently from the same specification.
 
-Be a strict code reviewer. Implementations in this task often contain one small hidden bug: a wrong comparison or arithmetic operator, a wrong variable, a wrong constant or index, a missing step (such as a missing abs, sort, strip or return), or an extra condition. Code that looks reasonable can still be buggy.
+Specification:
+{spec}
+
+Reference implementation:
+{reference}
+
+Candidate implementation:
+
+{full_code}
 
 Follow these steps exactly:
-Step 1 - Requirements: list every behavior the docstring requires as R1, R2, ... (what is returned, ordering, rounding, handling of special or edge inputs).
-Step 2 - Check each requirement: for each Ri, quote the exact line of code that implements it, then write OK only if that line does exactly what Ri says. Write VIOLATED if the line is missing, uses the wrong operator, variable or constant, or does something extra.
-Step 3 - Example: run the first docstring example through the code one statement at a time. Write "Expected:" with the output copied from the docstring and "Actual:" with the value the code really produces. Do not copy the expected value into Actual.
-Step 4 - Decision: answer Buggy if any requirement is VIOLATED, if Expected differs from Actual, or if you could not verify some requirement. Answer Correct only if every requirement is OK and Expected equals Actual.
+Step 1 - Differences: compare the candidate with the reference part by part (conditions, operators, constants, indexes, variables, return values, edge-case handling) and list each difference as D1, D2, ... Ignore differences in naming, style or loop form that cannot change the result. Write "none" if there are no differences.
+Step 2 - Impact: for each Di, pick a concrete input (use the specification examples when possible), write what the reference returns and what the candidate returns, and say CHANGES RESULT or SAME RESULT.
+Step 3 - Decision: count the differences marked CHANGES RESULT. If the count is 1 or more, answer Buggy, even if the first specification example passes. If the count is 0, answer Correct.
 Write the final prediction within <start> and <end> tags, for example <start>Buggy<end>, and stop writing after that tag.
 
 Example 1:
+Specification:
 def count_even(numbers: List[int]) -> int:
     \"\"\" Return how many numbers in the list are even.
     >>> count_even([1, 2, 4])
     2
     \"\"\"
+Reference implementation:
+def count_even(numbers: List[int]) -> int:
+    return sum(1 for n in numbers if n % 2 == 0)
+Candidate implementation:
+def count_even(numbers: List[int]) -> int:
     count = 0
     for n in numbers:
         if n % 2 == 1:
             count += 1
     return count
-Step 1 - Requirements: R1: count the even numbers. R2: return the count as an integer.
-Step 2 - Check: R1: `if n % 2 == 1:` selects odd numbers, so VIOLATED. R2: `return count` returns an integer, OK.
-Step 3 - Example: for [1, 2, 4], only 1 satisfies n % 2 == 1, so count is 1. Expected: 2. Actual: 1.
-Step 4 - Decision: R1 is VIOLATED and Expected differs from Actual.
+Step 1 - Differences: D1: the reference tests n % 2 == 0, the candidate tests n % 2 == 1.
+Step 2 - Impact: D1: for [1, 2, 4] the reference returns 2 and the candidate returns 1. CHANGES RESULT.
+Step 3 - Decision: 1 difference changes the result.
 <start>Buggy<end>
 
 Example 2:
-def sum_abs(numbers: List[int]) -> int:
-    \"\"\" Return the sum of the absolute values of the numbers.
-    >>> sum_abs([-1, 2, -3])
-    6
+Specification:
+def clamp(x: int, low: int, high: int) -> int:
+    \"\"\" Return x limited to the range from low to high.
+    >>> clamp(5, 0, 10)
+    5
     \"\"\"
-    total = 0
-    for n in numbers:
-        total += n
-    return total
-Step 1 - Requirements: R1: add up the absolute value of every number. R2: return the total.
-Step 2 - Check: R1: `total += n` adds n itself and never takes the absolute value, so VIOLATED. R2: `return total` is OK.
-Step 3 - Example: for [-1, 2, -3], total is -1 + 2 - 3 = -2. Expected: 6. Actual: -2.
-Step 4 - Decision: R1 is VIOLATED and Expected differs from Actual.
+Reference implementation:
+def clamp(x: int, low: int, high: int) -> int:
+    return max(low, min(x, high))
+Candidate implementation:
+def clamp(x: int, low: int, high: int) -> int:
+    if x < low:
+        return low
+    if x > high:
+        return low
+    return x
+Step 1 - Differences: D1: when x > high the reference returns high, the candidate returns low.
+Step 2 - Impact: D1: for clamp(15, 0, 10) the reference returns 10 and the candidate returns 0. CHANGES RESULT. (For the docstring example clamp(5, 0, 10) both return 5, but that does not remove the difference.)
+Step 3 - Decision: 1 difference changes the result.
 <start>Buggy<end>
 
-Now analyze this function:
-{full_code}
+Now review this function.
 ### Response:"""
+            prompt = (prompt.replace("{spec}", spec)
+                      .replace("{reference}", reference).replace("{full_code}", entry["declaration"] + full_code))
+            full_code = ""
 
         prompt = prompt.replace("{full_code}", full_code)
-        
         # TODO: prompt the model and get the response
-        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-        with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                max_new_tokens=1024,
-                do_sample=False,
-                pad_token_id=tokenizer.eos_token_id
-            )
-        generated_tokens = outputs[0][inputs["input_ids"].shape[1]:]
-        response = tokenizer.decode(generated_tokens, skip_special_tokens=True)
+        response = generate(prompt, 1024)
+        generated_tokens = tokenizer(response)["input_ids"]
 
         # TODO: process the response and save it to results
         model_result, prediction_source = parse_prediction(response)
