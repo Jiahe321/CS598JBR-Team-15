@@ -1,2 +1,13 @@
 CS598JBR-Team-101
 human-eval
+
+.env
+*.key
+*.pem
+
+target/
+__pycache__/
+*.pyc
+.DS_Store
+
+MP4/trajectories/*/notes/oracle_bin

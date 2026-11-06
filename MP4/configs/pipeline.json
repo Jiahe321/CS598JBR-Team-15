@@ -1,0 +1,17 @@
+{
+  "toolchain": "nightly-2025-05-13",
+  "max_iterations": 25,
+  "max_total_tokens": 4000000,
+  "stall_rounds": 3,
+  "tester_rounds": 1,
+  "phase_b_rounds": 4,
+  "agent_max_steps": {"reader": 25, "writer": 30, "tester": 25},
+  "obs_limit_chars": 6000,
+  "history_keep": 14,
+  "cargo_timeout_seconds": 600,
+  "oracle_timeout_seconds": 20,
+  "protected_globs": ["src/bin/*", "Cargo.toml"],
+  "protected_exceptions": ["tests/extra_*.rs"],
+  "unsafe_metrics_cmd": null,
+  "c_compiler": "cc"
+}
