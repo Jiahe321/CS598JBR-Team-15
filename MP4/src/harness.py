@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -60,9 +61,42 @@ def parse_tests(text):
 def interface_signatures(src_dir):
     sigs = set()
     pat = re.compile(r"pub\s+(?:const\s+)?fn\s+\w+\s*(?:<[^>]*>)?\s*\([^)]*\)\s*(?:->\s*[^{;]+)?")
+
+    def canonicalize(signature):
+        signature = re.sub(r"\s+", " ", signature).strip()
+        match = re.match(r"(pub\s+(?:const\s+)?fn\s+\w+(?:\s*<[^>]*>)?)\s*\((.*)\)(.*)", signature)
+        if not match:
+            return signature
+
+        prefix, params, suffix = match.groups()
+        parts, start, depth = [], 0, 0
+        for index, char in enumerate(params):
+            if char in "(<[":
+                depth += 1
+            elif char in ")>]":
+                depth -= 1
+            elif char == "," and depth == 0:
+                parts.append(params[start:index].strip())
+                start = index + 1
+        tail = params[start:].strip()
+        if tail:
+            parts.append(tail)
+
+        normalized = []
+        for part in parts:
+            if ":" in part:
+                name, typ = part.split(":", 1)
+                # Parameter names (including `mut name`) are not part of a Rust API type.
+                if re.fullmatch(r"(?:mut\s+)?[A-Za-z_][A-Za-z0-9_]*", name.strip()):
+                    part = typ.strip()
+            normalized.append(re.sub(r"\s+", "", part))
+        suffix = re.sub(r"\s+", "", suffix.rstrip(","))
+        prefix = re.sub(r"\s+", "", prefix)
+        return f"{prefix}({','.join(normalized)}){suffix}"
+
     for f in Path(src_dir).rglob("*.rs"):
         for m in pat.finditer(f.read_text(errors="replace")):
-            sigs.add(re.sub(r"\s+", " ", m.group(0)).strip().replace("( ", "(").replace(" )", ")"))
+            sigs.add(canonicalize(m.group(0)))
     return sigs
 
 
@@ -104,11 +138,22 @@ class Harness:
         self.last_report = None
 
     def cargo(self, args, timeout=None):
-        cmd = ["cargo", f"+{self.cfg['toolchain']}", *args]
+        env = tool_env()
+        # On Windows, CreateProcess resolves a bare executable against the
+        # parent PATH rather than the custom PATH passed in `env`.
+        cargo = shutil.which("cargo", path=env.get("PATH")) or "cargo"
+        target = self.cfg.get("cargo_target")
+        if target and "--target" not in args:
+            if "--" in args:
+                i = args.index("--")
+                args = [*args[:i], "--target", target, *args[i:]]
+            else:
+                args = [*args, "--target", target]
+        cmd = [cargo, f"+{self.cfg['toolchain']}", *args]
         try:
             p = subprocess.run(
                 cmd, cwd=self.crate, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                timeout=timeout or self.cfg["cargo_timeout_seconds"], env=tool_env())
+                timeout=timeout or self.cfg["cargo_timeout_seconds"], env=env)
         except subprocess.TimeoutExpired:
             return 124, "TIMEOUT: command exceeded the time limit (infinite loop in a test?)"
         except FileNotFoundError:
@@ -181,7 +226,13 @@ class Harness:
         if r["build_ok"]:
             rc, out, core, extra, excerpts = self.test()
             r.update(test_text=out, core=core, extra=extra, excerpts=excerpts)
-        r["core_ok"] = bool(r["build_ok"] and r["core"] and r["core"]["failed"] == 0 and r["core"]["total"] > 0)
+        # Interface conformance is part of the required benchmark contract. Do
+        # not advance to Phase B (or report success) while a required public
+        # signature has disappeared or changed, even if visible tests pass.
+        r["core_ok"] = bool(
+            r["build_ok"] and r["core"] and r["core"]["failed"] == 0
+            and r["core"]["total"] > 0 and not r["interface_missing"]
+        )
         r["extra_ok"] = bool(r["extra"] is None or r["extra"]["failed"] == 0)
         if full and r["build_ok"]:
             r["clippy"], r["clippy_samples"] = self.clippy()

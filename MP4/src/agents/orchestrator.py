@@ -36,7 +36,7 @@ class Orchestrator:
             m = re.search(r"\{.*\}", text, re.S)
             d = json.loads(m.group(0)) if m else {}
             ok = d.get("next_agent") in VALID and isinstance(d.get("task", ""), str)
-            if ok and d["next_agent"] == "stop" and not report["core_ok"]:
+            if ok and d["next_agent"] == "stop" and not (report["core_ok"] and report["extra_ok"]):
                 ok = False
             if ok:
                 decision = {"next_agent": d["next_agent"], "task": d.get("task", "") or fallback["task"]}

@@ -6,6 +6,7 @@
   "temperature": 0.2,
   "top_p": 0.95,
   "max_tokens": 8192,
+  "reasoning": {"max_tokens": 2048},
   "timeout_seconds": 240,
   "max_retries": 6,
   "backoff_base_seconds": 4

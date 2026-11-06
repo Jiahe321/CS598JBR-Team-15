@@ -9,6 +9,10 @@ class LLMError(Exception):
     pass
 
 
+class TokenBudgetReached(LLMError):
+    pass
+
+
 class LLM:
     def __init__(self, cfg, logger=None):
         self.cfg = cfg
@@ -21,6 +25,9 @@ class LLM:
         return self.usage["prompt"] + self.usage["completion"]
 
     def chat(self, messages, max_tokens=None, temperature=None):
+        budget = self.cfg.get("max_total_tokens")
+        if budget is not None and self.total_tokens >= budget:
+            raise TokenBudgetReached(f"token budget reached ({self.total_tokens}/{budget})")
         if not self.key:
             raise LLMError(f"{self.cfg['api_key_env']} is not set in the environment")
         models = [self.cfg["model"]]
@@ -45,6 +52,13 @@ class LLM:
             "top_p": cfg.get("top_p", 1.0),
             "max_tokens": max_tokens or cfg["max_tokens"],
         }
+        reasoning = cfg.get("reasoning")
+        if reasoning:
+            body["reasoning"] = dict(reasoning)
+            # Keep a visible-output budget for short orchestration replies.
+            if max_tokens and "max_tokens" in body["reasoning"]:
+                body["reasoning"]["max_tokens"] = min(
+                    body["reasoning"]["max_tokens"], max(1, max_tokens // 2))
         data = json.dumps(body).encode()
         headers = {
             "Authorization": f"Bearer {self.key}",
@@ -73,7 +87,9 @@ class LLM:
                 self._sleep(attempt)
                 continue
             try:
-                text = out["choices"][0]["message"]["content"] or ""
+                choice = out["choices"][0]
+                message = choice["message"]
+                text = message.get("content") or ""
             except (KeyError, IndexError):
                 err = f"malformed response: {str(out)[:300]}"
                 self._sleep(attempt)
@@ -82,6 +98,19 @@ class LLM:
             self.usage["prompt"] += u.get("prompt_tokens", 0)
             self.usage["completion"] += u.get("completion_tokens", 0)
             self.usage["calls"] += 1
+            if self.logger:
+                self.logger.log(
+                    "llm_response", model=model,
+                    finish_reason=choice.get("finish_reason"),
+                    content_chars=len(text), usage=u,
+                )
+            if not text.strip():
+                err = (f"empty visible content (finish_reason={choice.get('finish_reason')}, "
+                       f"completion_tokens={u.get('completion_tokens', 0)})")
+                if attempt + 1 < cfg["max_retries"]:
+                    self._sleep(attempt)
+                    continue
+                break
             return text
         raise LLMError(f"{model}: giving up after {cfg['max_retries']} attempts ({err})")
 

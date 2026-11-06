@@ -8,7 +8,7 @@ from pathlib import Path
 from agents.base import Agent
 from agents.orchestrator import Orchestrator
 from harness import Harness, interface_signatures
-from llm import LLM, LLMError
+from llm import LLM, LLMError, TokenBudgetReached
 from logger import Logger
 from state import State
 from tools import Workspace
@@ -45,12 +45,22 @@ def setup(args, llm=None):
     cfg, mcfg = load_cfg()
     if args.max_iterations:
         cfg["max_iterations"] = args.max_iterations
+    if getattr(args, "cargo_target", None):
+        cfg["cargo_target"] = args.cargo_target
     root = Path(args.out_root).resolve() if getattr(args, "out_root", None) else MP4
     traj = root / "trajectories" / f"project_{args.project}"
     crate = root / "translations" / f"project_{args.project}"
     template = Path(args.rust_template).resolve()
     if not (template / "Cargo.toml").is_file():
         sys.exit(f"--rust-template must be the CRUST-Bench Rust crate (Cargo.toml + interface + tests): {template}")
+    if getattr(args, "clean", False) and getattr(args, "resume", False):
+        sys.exit("--clean cannot be combined with --resume")
+    if getattr(args, "clean", False):
+        # These paths are derived from the validated project number and output root.
+        # Keep cleanup scoped to this project's generated artifacts.
+        for path in (crate, traj):
+            if path.exists():
+                shutil.rmtree(path)
     moved = []
     if not crate.exists() or not any(crate.iterdir()):
         shutil.copytree(template, crate, ignore=shutil.ignore_patterns("target", ".git"))
@@ -58,7 +68,14 @@ def setup(args, llm=None):
     ctx = Ctx()
     ctx.cfg = cfg
     ctx.logger = Logger(traj)
-    ctx.logger.log("setup", layout_moves=moved, template=str(template), c_dir=str(args.c_dir))
+    ctx.logger.log("setup", project=args.project, layout_moves=moved,
+                   template=str(template), c_dir=str(Path(args.c_dir).resolve()),
+                   model=mcfg.get("model"), toolchain=cfg.get("toolchain"),
+                   resume=bool(getattr(args, "resume", False)),
+                   cargo_target=cfg.get("cargo_target"),
+                   max_iterations=cfg.get("max_iterations"),
+                   token_budget=cfg.get("max_total_tokens"))
+    mcfg["max_total_tokens"] = cfg["max_total_tokens"]
     ctx.llm = llm or LLM(mcfg, ctx.logger)
     ctx.harness = Harness(crate, cfg)
     ctx.harness.interface_sigs = interface_signatures(template / "src")
@@ -94,12 +111,22 @@ def run(args, llm=None):
     tester_done = b_used = 0
     good_score, reader_escalated = None, False
     try:
-        agents["reader"].run("Read the C project, the Rust interface and the tests, then write the spec "
-                             "(notes/spec.md plus one notes/spec_<module>.md per module).")
-        agents["writer"].run("Create the initial Rust translation. Read notes/spec.md first, then the Rust "
-                             "interface in src/ and the tests. Get `run_cargo cmd=\"check\"` to pass, then "
-                             "`cmd=\"test\"`.")
-        for it in range(1, cfg["max_iterations"] + 1):
+        if over_budget(ctx):
+            status = "token_budget"
+        elif getattr(args, "resume", False):
+            log.log("resume", note="continue from the existing translation and saved specifications")
+        else:
+            agents["reader"].run("Read the C project, the Rust interface and the tests, then write the spec "
+                                 "(notes/spec.md plus one notes/spec_<module>.md per module).")
+            if over_budget(ctx):
+                status = "token_budget"
+            else:
+                agents["writer"].run("Create the initial Rust translation. Read notes/spec.md first, then the Rust "
+                                     "interface in src/ and the tests. Get `run_cargo cmd=\"check\"` to pass, then "
+                                     "`cmd=\"test\"`.")
+                if over_budget(ctx):
+                    status = "token_budget"
+        for it in range(1, cfg["max_iterations"] + 1) if status != "token_budget" else ():
             if over_budget(ctx):
                 status = "token_budget"
                 break
@@ -138,6 +165,12 @@ def run(args, llm=None):
                     st.reset_stall()
                     continue
                 d = orch.decide(it, phase, rep, rendered, analysed_sig)
+                if over_budget(ctx):
+                    status = "token_budget"
+                    break
+                if d["next_agent"] == "stop":
+                    status = "orchestrator_stop"
+                    break
                 brief = f"{d['task']}\n\nHarness feedback:\n{rendered}"
                 if d["next_agent"] == "tester":
                     analysed_sig = rep["sig"]
@@ -166,6 +199,9 @@ def run(args, llm=None):
                 b_used += 1
                 task = (PROMPTS / "phase_b.md").read_text() + "\n\nCurrent metrics:\n" + rendered
                 agents["writer"].run(task)
+    except TokenBudgetReached as e:
+        status = "token_budget"
+        log.log("budget_stop", error=str(e))
     except LLMError as e:
         status = f"llm_error: {e}"
         log.log("fatal", error=str(e))
@@ -179,6 +215,7 @@ def run(args, llm=None):
             "build_ok": final["build_ok"], "core": final["core"], "extra": final["extra"],
             "clippy": final["clippy"], "unsafe": final["unsafe"],
             "interface_missing": final["interface_missing"],
+            "core_ok": final["core_ok"], "extra_ok": final["extra_ok"],
             "tokens": ctx.llm.usage,
         }
         log.write_json("final_status.json", result)
@@ -193,6 +230,10 @@ def main():
     ap.add_argument("--rust-template", required=True,
                     help="CRUST-Bench Rust crate (Cargo.toml, src/ interface stubs, tests/)")
     ap.add_argument("--max-iterations", type=int)
+    ap.add_argument("--cargo-target", help="optional Cargo target triple (useful for Windows GNU builds)")
+    ap.add_argument("--resume", action="store_true", help="continue from the existing translation/spec files")
+    ap.add_argument("--clean", action="store_true",
+                    help="replace this project's translation from the template and clear its trajectory")
     ap.add_argument("--out-root", help="override output root (default: MP4/); used by tests")
     run(ap.parse_args())
 
