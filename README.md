@@ -3,6 +3,7 @@
 ## Group members
 - Jiahe Lin, jiahel8
 - Yueran Cai, yueranc3
+- Akshay Rao, akshayr4
 
 
 ## Link of Google Colab Notebook
