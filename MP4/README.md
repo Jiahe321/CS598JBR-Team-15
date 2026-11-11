@@ -1,120 +1,69 @@
-# MP4: Agentic C-to-Rust translation (Team 15)
+# MP4: Agentic C-to-Rust Translation
 
-Assigned projects (Group 15): **project_1 = `bigint`**, **project_2 = `razz_simulation`**.
+## Environment
 
-## Pipeline overview
-Three specialist agents and one orchestrator use the same configured model with different prompts and tool/write permissions:
+- Agent framework and version: TODO
+- Model(s) and provider/runtime: TODO
+- Inference settings (temperature, token limits, etc.): TODO 
+- OS/runtime: TODO
+- Tools available to the agent: Cargo, Rust compiler, Clippy, unsafe-metrics tool (update as used)
+- API or usage limits: TODO
 
-| Agent | Role | May write |
-|---|---|---|
-| Orchestrator | reads harness feedback, picks the next agent (JSON, validated, deterministic fallback) | nothing |
-| Reader | reads C + Rust interface + tests, writes the behavioural spec | `notes/spec*.md` |
-| Writer | writes/repairs the Rust translation | `src/**` |
-| Tester | writes extra tests (C binary used as an oracle for expected values), analyses failures | `tests/extra_*.rs`, `notes/**` |
+## Setup
 
-A deterministic **harness** (`src/harness.py`) runs `cargo build/test/clippy` with the pinned toolchain and the
-unsafe-metrics tool, compresses the output and returns it to the agents.
+The controller uses Python's standard library and does not require Python packages. Install Rust with `rustup`, then install the toolchain and Clippy component configured for this project:
 
-Phase A: compile and pass the CRUST tests. Phase B: reduce unsafe and Clippy findings; any round that breaks
-tests or fails to improve the score is reverted.
-
-**Stopping conditions:** success (all metrics zero), Phase B round limit, max iterations, token budget, or the
-same failure repeated `stall_rounds` times (after one Reader escalation).
-
-## Task 2: iterative translation workflow
-
-The reusable controller is `src/pipeline.py`. It accepts a C project directory and its CRUST Rust template at
-runtime, so project-specific implementation details are not embedded in the controller. `src/tools.py`
-provides role-limited file access: C sources are read-only, benchmark tests and `Cargo.toml` are protected,
-and each agent can write only to its assigned paths. The Tester can compile and run a temporary C oracle to
-derive expected values; the Rust translation never links to or calls the C project.
-
-For each project, the controller:
-
-1. Copies the provided Rust template to `translations/project_<N>/` and records the original source snapshot.
-2. Runs the Reader to inspect C, interface stubs, and tests, then save `notes/spec.md` and module-specific
-   specifications in `trajectories/project_<N>/notes/`.
-3. Runs the Writer to implement the Rust modules, using nightly Cargo check and test output as feedback.
-4. Re-evaluates build, CRUST tests, interface signatures, and agent-written extra tests. The Orchestrator
-   chooses a Writer, Tester, or Reader action from the latest report; repeated identical failures trigger one
-   Reader re-analysis before the stalled stopping condition.
-5. Once tests pass, runs a bounded safety/Clippy phase. It keeps the best source snapshot and restores it if
-   a change breaks tests or does not improve the combined metric score.
-6. Saves `trajectory.jsonl`, `iterations.json`, `final_status.json`, notes, and snapshots under the project's
-   trajectory directory. The log redacts the configured API key before writing.
-
-Add `--resume` when continuing from an existing translation and saved specification. Use `--clean` for a fresh
-run: it replaces only the selected project's translation with the supplied template and clears that project's
-trajectory directory. `--clean` and `--resume` cannot be combined. Without either flag, an existing translation
-is retained and the Reader and initial Writer phases run before the feedback loop.
-
-The Phase A completion check includes required public interface signatures as well as passing CRUST tests.
-Phase B reports Clippy correctness/style/complexity/performance categories and unsafe metrics. When the
-official unsafe-metrics command is not configured, the harness labels its built-in source scan as an estimate;
-it should not be reported as the course-provided analyzer's result.
-
-Run from the repository root (PowerShell example; provide the key in your shell environment and do not save
-it in the repository). On Windows without the MSVC linker, install the GNU standard library target once and
-pass it with `--cargo-target`; the Rust toolchain version remains pinned to nightly-2025-05-13:
-
-```powershell
-$env:OPENROUTER_API_KEY = "<your key>"
-rustup target add x86_64-pc-windows-gnu --toolchain nightly-2025-05-13
-python MP4/src/pipeline.py --project 1 --c-dir MP4/subjects/project_1/bigint --rust-template MP4/subjects/project_1/rust_template --cargo-target x86_64-pc-windows-gnu --clean
-python MP4/src/pipeline.py --project 2 --c-dir MP4/subjects/project_2/razz_simulation --rust-template MP4/subjects/project_2/rust_template --cargo-target x86_64-pc-windows-gnu --clean
-```
-
-Python 3.13 uses only its standard library; install Rust through rustup and install the pinned compiler and
-Clippy component before running the commands:
-
-```powershell
+```bash
 rustup toolchain install nightly-2025-05-13 -c clippy,rustfmt
 ```
 
-The code and commands above describe the reproducible workflow; each project's trajectory and final status
-must be generated by running the command and retained with the submission.
+Set `OPENROUTER_API_KEY` in the shell used to launch the controller. Do not commit the key or put it in this README. The model endpoint and inference settings are configured in `configs/model.json`; pipeline limits and tool settings are in `configs/pipeline.json`.
 
-## Setup
-- Framework: custom Python 3 controller (stdlib only, no pip dependencies), `src/`.
-- Model: `nvidia/nemotron-3-ultra-550b-a55b:free` via OpenRouter (configuration in `configs/model.json`), temperature 0.2, top_p 0.95, max_tokens 8192.
-- Toolchain: `rustup toolchain install nightly-2025-05-13 -c clippy,rustfmt`
-- OS/runtime: Windows, Python 3.13.15. Record the Windows edition/build (from `winver`) and Rust toolchain for
-  each final run; the previous run record did not preserve the exact Windows build.
-- Tools available to agents: read_file, list_dir, grep, write_file (permissioned), run_cargo
-  (check/build/test/clippy/unsafe), run_c_oracle (tester only).
-- API/usage limits: one prior attempt stopped with a local Windows socket permission error while contacting
-  OpenRouter (`WinError 10013`); no provider quota or rate-limit response was observed. That run is incomplete
-  and must not be reported as a completed project result.
+## Run
 
-## Run (macOS/Linux)
-
-`src/run.sh` uses the Homebrew rustup path and is intended for macOS/Linux environments. On Windows, use the
-PowerShell commands above; `--cargo-target x86_64-pc-windows-gnu` is only a local workaround for a machine
-without the MSVC linker, not the grading target.
+Run commands from the repository root. On macOS/Linux, `src/run.sh` changes into `MP4/` before running the controller, so pass input directories relative to `MP4/`:
 
 ```bash
-export OPENROUTER_API_KEY=...        # never commit
-./src/run.sh 1 subjects/project_1/bigint subjects/project_1/rust_template
-./src/run.sh 2 subjects/project_2/razz_simulation subjects/project_2/rust_template
-python3 src/smoke_test.py <scratch-dir>   # offline self-test, no API key needed
+export OPENROUTER_API_KEY="<your key>"
+./MP4/src/run.sh 1 subjects/project_1/bigint subjects/project_1/rust_template
+./MP4/src/run.sh 2 subjects/project_2/razz_simulation subjects/project_2/rust_template
 ```
 
-## Layout
-`src/` pipeline code, `configs/` model/pipeline settings and prompts, `subjects/` original C,
-`translations/` final Rust, `trajectories/` logs (`trajectory.jsonl`, `iterations.json`, `final_status.json`, notes).
+The controller can also be invoked directly, including on Windows:
 
-## Manual interventions
-Infrastructure-only changes (no translated program logic or tests were edited by hand):
-- `harness.py`: resolve `cargo` via `shutil.which` (Windows PATH issue); optional `--cargo-target`
-  (`x86_64-pc-windows-gnu`) because the local machine has no MSVC linker; require interface signatures
-  to match before Phase A is considered complete.
-- `pipeline.py` / `orchestrator.py`: honour the orchestrator's `stop` decision instead of invoking the
-  Writer; log model/toolchain in the setup event; record `core_ok`/`extra_ok` in `final_status.json`.
-- `harness.py`: place Cargo's `--target` option before the `--` separator so Clippy passes it to Cargo.
-- `harness.py`: compare interface signatures without parameter names, so equivalent names such as `a` and `_a`
-  do not cause false interface failures.
+```powershell
+$env:OPENROUTER_API_KEY = "<your key>"
+python MP4/src/pipeline.py --project 1 --c-dir MP4/subjects/project_1/bigint --rust-template MP4/subjects/project_1/rust_template
+python MP4/src/pipeline.py --project 2 --c-dir MP4/subjects/project_2/razz_simulation --rust-template MP4/subjects/project_2/rust_template
+```
 
-The checked-in project 1 record is incomplete: it stopped on a local socket permission error, has failing factorial
-tests, and its signature report was produced by the earlier parameter-name-sensitive checker. Project 2 also needs
-a real pipeline run and complete trajectory. Do not present either project as complete until its clean run has
-produced a non-empty trajectory, iterations file, and final status. Use `--clean` to regenerate these artifacts.
+Add `--clean` to start from the supplied Rust template and clear that project's trajectory output. Add `--resume` to continue an existing run. These options cannot be used together. `--max-iterations N` overrides the configured iteration limit. On Windows, if the MSVC linker is unavailable, install the GNU target and pass `--cargo-target x86_64-pc-windows-gnu`.
+
+## Pipeline
+
+The controller in `src/pipeline.py` coordinates three specialist agents and an orchestrator. The Reader analyzes the C sources, Rust interfaces, and tests and writes behavioral specifications. The Writer implements or repairs Rust code. The Tester analyzes failures, can add extra Rust tests, and can use a temporary C executable as an oracle. The Orchestrator selects the next action from the latest harness report.
+
+For each project, the pipeline prepares a Rust translation from the supplied template, runs the agents and Cargo harness in an iterative feedback loop, and checks interface signatures and CRUST tests. Once Phase A passes, Phase B attempts to reduce Clippy findings and unsafe-code metrics while preserving passing tests; a change that breaks tests or does not improve the score is reverted. Runs stop on success, configured iteration or token limits, the Phase B limit, or repeated stalled failures.
+
+The C project is used as read-only input. The Rust translation is independent and does not link to or call the C project. Agent file permissions are role-limited by `src/tools.py`.
+
+## Outputs
+
+Generated artifacts are stored under `translations/project_<N>/` and `trajectories/project_<N>/`:
+
+- `translations/project_<N>/`: the Rust translation produced by the run.
+- `trajectories/project_<N>/trajectory.jsonl`: chronological agent, tool, and harness events.
+- `trajectories/project_<N>/iterations.json`: iteration history and run details.
+- `trajectories/project_<N>/final_status.json`: final status, phase, and evaluation summary.
+- `trajectories/project_<N>/notes/`: behavioral specifications and analysis notes.
+- `trajectories/project_<N>/snapshots/`: source snapshots used during the run.
+
+Retain these artifacts with the submission. A project should only be reported as completed after its run has generated a non-empty trajectory, an iterations file, and a final status.
+
+## Evaluation
+
+Phase A evaluates whether the Rust crate builds, the required public interface signatures match, and the CRUST tests pass. Phase B reports Clippy findings by category and unsafe-code metrics. The pipeline's combined score sums the Clippy counts and the configured unsafe metrics; Phase B retains improvements only when tests continue to pass.
+
+The official unsafe-metrics tool is not configured by default (`unsafe_metrics_cmd` is `null` in `configs/pipeline.json`). In that case the harness reports its built-in source scan as an estimate. Identify the metric source when reporting results, and do not describe the estimate as the course-provided analyzer's result.
+
+No experiments have been run for this README revision. Populate the Environment section and report project results after running the workflow; do not infer experimental results from the checked-in trajectory files.
