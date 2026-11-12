@@ -1,0 +1,176 @@
+Running cargo newmetrics
+Testing sysroot consistency...
+Done
+Target name: bigint
+     Removed 151 files, 64.8KiB total
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test2.rs` found to be present in multiple build targets:
+  * `bin` target `test2`
+  * `integration-test` target `test2`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test3.rs` found to be present in multiple build targets:
+  * `bin` target `test3`
+  * `integration-test` target `test3`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test1.rs` found to be present in multiple build targets:
+  * `bin` target `test1`
+  * `integration-test` target `test1`
+    Checking bigint v0.1.0 (D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1)
+Running cargo rustc
+warning: variable does not need to be mutable
+   --> src\bigint.rs:385:17
+    |
+385 |             let mut quotient = BigInt::zero();
+    |                 ----^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+Pointer arithmetic: 0
+Unsafe lines: 0
+Unsafe calls: 0
+Unsafe casts: 0
+Total spans: 21187
+Unsafe ratio: 0
+Raw pointer dereferences: 0
+Raw pointer declarations: 0
+cargo rustc finished
+warning: `bigint` (lib) generated 2 warnings (1 duplicate) (run `cargo fix --lib -p bigint` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.01s
+Target name: test1
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test2.rs` found to be present in multiple build targets:
+  * `bin` target `test2`
+  * `integration-test` target `test2`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test1.rs` found to be present in multiple build targets:
+  * `bin` target `test1`
+  * `integration-test` target `test1`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test3.rs` found to be present in multiple build targets:
+  * `bin` target `test3`
+  * `integration-test` target `test3`
+Running cargo rustc
+warning: variable does not need to be mutable
+   --> src\bigint.rs:385:17
+    |
+385 |             let mut quotient = BigInt::zero();
+    |                 ----^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+cargo rustc finished
+warning: `bigint` (lib) generated 2 warnings (1 duplicate) (run `cargo fix --lib -p bigint` to apply 1 suggestion)
+    Checking bigint v0.1.0 (D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1)
+Running cargo rustc
+warning: function `factorial` is never used
+ --> src\bin\test1.rs:3:4
+  |
+3 | fn factorial(n: BigInt) -> BigInt {
+  |    ^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+Pointer arithmetic: 0
+Unsafe lines: 0
+Unsafe calls: 0
+Unsafe casts: 0
+Total spans: 679
+Unsafe ratio: 0
+Raw pointer dereferences: 0
+Raw pointer declarations: 0
+cargo rustc finished
+warning: `bigint` (bin "test1") generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.77s
+Target name: test2
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test1.rs` found to be present in multiple build targets:
+  * `bin` target `test1`
+  * `integration-test` target `test1`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test3.rs` found to be present in multiple build targets:
+  * `bin` target `test3`
+  * `integration-test` target `test3`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test2.rs` found to be present in multiple build targets:
+  * `bin` target `test2`
+  * `integration-test` target `test2`
+Running cargo rustc
+warning: variable does not need to be mutable
+   --> src\bigint.rs:385:17
+    |
+385 |             let mut quotient = BigInt::zero();
+    |                 ----^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+cargo rustc finished
+warning: `bigint` (lib) generated 2 warnings (1 duplicate) (run `cargo fix --lib -p bigint` to apply 1 suggestion)
+    Checking bigint v0.1.0 (D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1)
+Running cargo rustc
+warning: unused import: `bigint::bigint::BigInt`
+ --> src\bin\test2.rs:1:5
+  |
+1 | use bigint::bigint::BigInt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+Pointer arithmetic: 0
+Unsafe lines: 0
+Unsafe calls: 0
+Unsafe casts: 0
+Total spans: 2164
+Unsafe ratio: 0
+Raw pointer dereferences: 0
+Raw pointer declarations: 0
+cargo rustc finished
+warning: `bigint` (bin "test2") generated 1 warning (run `cargo fix --bin "test2"` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.24s
+Target name: test3
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test2.rs` found to be present in multiple build targets:
+  * `bin` target `test2`
+  * `integration-test` target `test2`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test1.rs` found to be present in multiple build targets:
+  * `bin` target `test1`
+  * `integration-test` target `test1`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test3.rs` found to be present in multiple build targets:
+  * `bin` target `test3`
+  * `integration-test` target `test3`
+Running cargo rustc
+warning: variable does not need to be mutable
+   --> src\bigint.rs:385:17
+    |
+385 |             let mut quotient = BigInt::zero();
+    |                 ----^^^^^^^^
+    |                 |
+    |                 help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+cargo rustc finished
+warning: `bigint` (lib) generated 2 warnings (1 duplicate) (run `cargo fix --lib -p bigint` to apply 1 suggestion)
+    Checking bigint v0.1.0 (D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1)
+Running cargo rustc
+warning: unused import: `bigint::bigint::BigInt`
+ --> src\bin\test3.rs:1:5
+  |
+1 | use bigint::bigint::BigInt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+Pointer arithmetic: 0
+Unsafe lines: 0
+Unsafe calls: 0
+Unsafe casts: 0
+Total spans: 1227
+Unsafe ratio: 0
+Raw pointer dereferences: 0
+Raw pointer declarations: 0
+cargo rustc finished
+warning: `bigint` (bin "test3") generated 1 warning (run `cargo fix --bin "test3"` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s
+Target name: test1
+Target test:test1 is not supported
+Target name: test2
+Target test:test2 is not supported
+Target name: test3
+Target test:test3 is not supported
+cargo newmetrics finished
