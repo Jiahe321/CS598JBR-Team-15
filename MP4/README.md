@@ -2,68 +2,67 @@
 
 ## Environment
 
-- Agent framework and version: TODO
-- Model(s) and provider/runtime: TODO
-- Inference settings (temperature, token limits, etc.): TODO 
-- OS/runtime: TODO
-- Tools available to the agent: Cargo, Rust compiler, Clippy, unsafe-metrics tool (update as used)
-- API or usage limits: TODO
+- Agent framework: the repository's custom Python orchestration controller; it uses Reader, Writer, Tester, and Orchestrator roles. No external agent framework package is required.
+- Model/provider: DeepSeek API, `deepseek-flash`, using `https://api.deepseek.com`. DeepSeek currently documents this model alias as V4.1 Flash ([model details](https://api-docs.deepseek.com/quick_start/pricing/)).
+- Inference settings sent by the controller: temperature `0.2`, top-p `0.95`, maximum output `8192` tokens, thinking disabled, 120-second request timeout, and up to 2 attempts. The provider may ignore some sampling parameters in non-thinking mode.
+- Local runtime: Windows PowerShell, Python 3.13.15, Rust `nightly-2025-05-13` (rustc 1.89.0-nightly), and MinGW GCC 16.2.0. Python dependencies are all from the standard library.
+- Tools available to agents: scoped file read/search/write actions, Cargo check/build/test/Clippy, and a temporary GCC C oracle. Each outer iteration now runs the local built-in unsafe-source scan and returns its counts to the agent. The separate `newmetrics/` analyzer in this repository is not wired into the controller.
+- Per-project run limits: 5 outer iterations, 20 provider HTTP requests (including retries), 500,000 total tokens, 3 repeated-stall rounds, and 4 Phase B rounds. The account's remaining API quota is provider-specific and has not been checked.
+- Current run state: Project 1 has a partial translation and trajectory from an earlier run; Project 2 has its C source and Rust template, but no generated translation or trajectory yet. Treat neither project as complete until its new `final_status.json` is reviewed.
 
-## Setup
+The model and pipeline settings are in `configs/model.json` and `configs/pipeline.json`; prompts are in `configs/prompts/`. The controller reads `MP4/.env` automatically and does not overwrite variables already set in the shell. Copy `.env.example` to `.env`, then set `DEEPSEEK_API_KEY`. Keep `.env` private; it is ignored by Git.
 
-The controller uses Python's standard library and does not require Python packages. Install Rust with `rustup`, then install the toolchain and Clippy component configured for this project:
+## Dependencies
 
-```bash
+Python requires no package installation. Install the pinned Rust toolchain and Clippy:
+
+```powershell
 rustup toolchain install nightly-2025-05-13 -c clippy,rustfmt
 ```
 
-Set `OPENROUTER_API_KEY` in the shell used to launch the controller. Do not commit the key or put it in this README. The model endpoint and inference settings are configured in `configs/model.json`; pipeline limits and tool settings are in `configs/pipeline.json`.
-
-## Run
-
-Run commands from the repository root. On macOS/Linux, `src/run.sh` changes into `MP4/` before running the controller, so pass input directories relative to `MP4/`:
-
-```bash
-export OPENROUTER_API_KEY="<your key>"
-./MP4/src/run.sh 1 subjects/project_1/bigint subjects/project_1/rust_template
-./MP4/src/run.sh 2 subjects/project_2/razz_simulation subjects/project_2/rust_template
-```
-
-The controller can also be invoked directly, including on Windows:
+Install GCC or Clang if the C-oracle tests are to be used. On Windows, the one-command runner selects `x86_64-pc-windows-gnu` when MSVC linker tools are unavailable; install that Rust target and MinGW if needed:
 
 ```powershell
-$env:OPENROUTER_API_KEY = "<your key>"
+rustup target add x86_64-pc-windows-gnu --toolchain nightly-2025-05-13
+```
+
+## Run both assigned projects
+
+From the repository root, run:
+
+```powershell
+.\MP4\src\run_all.ps1
+```
+
+The script checks the required tools and input directories, runs Project 1 and then Project 2, and prints each final status. It resumes a project when a generated `translations/project_<N>/src/` already exists; otherwise it starts from the supplied template. Use `-MaxIterations N` or `-MaxLlmRequests N` to override the per-project limits. Use `-Fresh` only when you want to replace both projects' generated translations and clear their trajectories before running.
+
+To run one project directly:
+
+```powershell
 python MP4/src/pipeline.py --project 1 --c-dir MP4/subjects/project_1/bigint --rust-template MP4/subjects/project_1/rust_template
 python MP4/src/pipeline.py --project 2 --c-dir MP4/subjects/project_2/razz_simulation --rust-template MP4/subjects/project_2/rust_template
 ```
 
-Add `--clean` to start from the supplied Rust template and clear that project's trajectory output. Add `--resume` to continue an existing run. These options cannot be used together. `--max-iterations N` overrides the configured iteration limit. On Windows, if the MSVC linker is unavailable, install the GNU target and pass `--cargo-target x86_64-pc-windows-gnu`.
+If using the direct command on Windows without MSVC tools, add `--cargo-target x86_64-pc-windows-gnu`. On macOS/Linux, the pipeline uses the host Rust target. `src/run.sh` is the macOS/Linux single-project wrapper.
 
-## Pipeline
+## Pipeline and stopping conditions
 
-The controller in `src/pipeline.py` coordinates three specialist agents and an orchestrator. The Reader analyzes the C sources, Rust interfaces, and tests and writes behavioral specifications. The Writer implements or repairs Rust code. The Tester analyzes failures, can add extra Rust tests, and can use a temporary C executable as an oracle. The Orchestrator selects the next action from the latest harness report.
+The Reader analyzes the C project, Rust interface, and tests and writes behavioral specifications. The Writer implements and repairs Rust. The Tester reviews failures, can add extra Rust tests, and can query a temporary C oracle. The Orchestrator selects the next role using the latest Cargo feedback.
 
-For each project, the pipeline prepares a Rust translation from the supplied template, runs the agents and Cargo harness in an iterative feedback loop, and checks interface signatures and CRUST tests. Once Phase A passes, Phase B attempts to reduce Clippy findings and unsafe-code metrics while preserving passing tests; a change that breaks tests or does not improve the score is reverted. Runs stop on success, configured iteration or token limits, the Phase B limit, or repeated stalled failures.
+Phase A stops when interface checks and tests pass, the configured iteration/token/request budget is reached, or failures stall. After each outer iteration, the controller runs build/tests and the local unsafe-source scan; Phase B also runs Clippy and tries up to 4 metric-reduction rounds while keeping tests passing. Changes that break tests or fail to improve the configured score are reverted. The model receives build, test, safety-estimate, and (in Phase B) Clippy feedback after each evaluation.
 
-The C project is used as read-only input. The Rust translation is independent and does not link to or call the C project. Agent file permissions are role-limited by `src/tools.py`.
+The C source is read-only to the agents. Rust output is compiled independently and does not link to the C implementation. The pipeline preserves the supplied interface and test files.
 
-## Outputs
+## Outputs and reproducibility
 
-Generated artifacts are stored under `translations/project_<N>/` and `trajectories/project_<N>/`:
+Each run writes:
 
-- `translations/project_<N>/`: the Rust translation produced by the run.
-- `trajectories/project_<N>/trajectory.jsonl`: chronological agent, tool, and harness events.
-- `trajectories/project_<N>/iterations.json`: iteration history and run details.
-- `trajectories/project_<N>/final_status.json`: final status, phase, and evaluation summary.
-- `trajectories/project_<N>/notes/`: behavioral specifications and analysis notes.
-- `trajectories/project_<N>/snapshots/`: source snapshots used during the run.
+- `translations/project_<N>/`: the generated Rust crate.
+- `trajectories/project_<N>/trajectory.jsonl`: agent actions, tool results, and evaluation events.
+- `trajectories/project_<N>/iterations.json`: iteration history.
+- `trajectories/project_<N>/final_status.json`: final status and evaluation summary.
+- `trajectories/project_<N>/notes/` and `snapshots/`: behavioral specifications and source snapshots.
 
-Retain these artifacts with the submission. A project should only be reported as completed after its run has generated a non-empty trajectory, an iterations file, and a final status.
+Review trajectories for credentials before committing. The logger redacts configured API key values, but the final repository should still be checked before submission. Update the environment and results sections after both runs finish; do not present partial artifacts as completed experiments.
 
-## Evaluation
-
-Phase A evaluates whether the Rust crate builds, the required public interface signatures match, and the CRUST tests pass. Phase B reports Clippy findings by category and unsafe-code metrics. The pipeline's combined score sums the Clippy counts and the configured unsafe metrics; Phase B retains improvements only when tests continue to pass.
-
-The official unsafe-metrics tool is not configured by default (`unsafe_metrics_cmd` is `null` in `configs/pipeline.json`). In that case the harness reports its built-in source scan as an estimate. Identify the metric source when reporting results, and do not describe the estimate as the course-provided analyzer's result.
-
-No experiments have been run for this README revision. Populate the Environment section and report project results after running the workflow; do not infer experimental results from the checked-in trajectory files.
+The course's required evaluation toolchain is `nightly-2025-05-13`. Run `cargo +nightly-2025-05-13 build`, `cargo +nightly-2025-05-13 test`, and the specified Clippy categories on each final crate before submission. The built-in unsafe scan is an estimate and must not be reported as output from the separate `newmetrics/` analyzer or the course-provided unsafe-metrics analyzer.

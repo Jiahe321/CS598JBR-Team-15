@@ -21,7 +21,7 @@ def redact(text, extra_secrets=()):
 
 
 class Logger:
-    def __init__(self, traj_dir, secret_env_vars=("OPENROUTER_API_KEY",)):
+    def __init__(self, traj_dir, secret_env_vars=("OPENROUTER_API_KEY", "DEEPSEEK_API_KEY")):
         self.dir = Path(traj_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
         self.path = self.dir / "trajectory.jsonl"

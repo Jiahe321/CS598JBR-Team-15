@@ -1,0 +1,117 @@
+id	line	macro	executions	passed	failed	first_failure
+1	23	assert_eq	8	0	8	assertion `left == right` failed   left: ClubAce  right: SpadeAce
+2	31	assert_eq	8	0	8	assertion `left == right` failed   left: ClubAce  right: SpadeAce
+3	39	assert_eq	8	0	8	assertion `left == right` failed   left: ClubAce  right: SpadeAce
+4	46	assert_eq	4	0	4	assertion `left == right` failed   left: Diamond2  right: Heart9
+5	50	assert	1	0	1	Hand should be empty
+6	58	assert	1	1	0	
+7	59	assert	1	1	0	
+8	60	assert	1	1	0	
+9	62	assert	1	1	0	
+10	63	assert_eq	1	1	0	
+11	64	assert_eq	1	1	0	
+12	65	assert_eq	1	1	0	
+13	67	assert	1	1	0	
+14	69	assert	1	1	0	
+15	70	assert_eq	1	1	0	
+16	71	assert_eq	1	1	0	
+17	72	assert_eq	1	1	0	
+18	74	assert	1	1	0	
+19	75	assert_eq	1	1	0	
+20	76	assert_eq	1	1	0	
+21	77	assert_eq	1	1	0	
+22	79	assert	1	1	0	
+23	80	assert_eq	1	1	0	
+24	81	assert_eq	1	1	0	
+25	82	assert_eq	1	1	0	
+26	84	assert	1	1	0	
+27	85	assert_eq	1	1	0	
+28	86	assert_eq	1	1	0	
+29	87	assert_eq	1	1	0	
+30	89	assert	1	1	0	
+31	90	assert_eq	1	1	0	
+32	91	assert_eq	1	1	0	
+33	92	assert_eq	1	1	0	
+34	94	assert	1	1	0	
+35	95	assert_eq	1	1	0	
+36	96	assert_eq	1	1	0	
+37	97	assert_eq	1	1	0	
+38	99	assert	1	1	0	
+39	101	assert	1	1	0	
+40	103	assert	1	1	0	
+41	105	assert	1	1	0	
+42	106	assert_eq	1	1	0	
+43	107	assert_eq	1	1	0	
+44	108	assert_eq	1	1	0	
+45	109	assert_eq	1	1	0	
+46	110	assert_eq	1	1	0	
+47	111	assert_eq	1	1	0	
+48	112	assert_eq	1	1	0	
+49	113	assert_eq	1	1	0	
+50	114	assert_eq	1	1	0	
+51	115	assert	1	1	0	
+52	116	assert_eq	1	1	0	
+53	117	assert_eq	1	1	0	
+54	118	assert_eq	1	1	0	
+55	119	assert_eq	1	1	0	
+56	120	assert	1	1	0	
+57	123	assert	1	1	0	
+58	124	assert	1	1	0	
+59	126	assert	1	1	0	
+60	128	assert	1	1	0	
+61	131	assert	50	50	0	
+62	132	assert	50	50	0	
+63	135	assert	1	1	0	
+64	138	assert	1	1	0	
+65	140	assert	1	1	0	
+66	141	assert_eq	1	1	0	
+67	142	assert_eq	1	1	0	
+68	143	assert_eq	1	1	0	
+69	145	assert_eq	1	1	0	
+70	146	assert_eq	1	1	0	
+71	147	assert_eq	1	0	1	assertion `left == right` failed   left: J  right: R9
+72	149	assert_eq	1	1	0	
+73	150	assert_eq	1	1	0	
+74	151	assert_eq	1	0	1	assertion `left == right` failed   left: J  right: R9
+75	153	assert_eq	1	1	0	
+76	154	assert_eq	1	1	0	
+77	155	assert_eq	1	0	1	assertion `left == right` failed   left: R8  right: R10
+78	157	assert_eq	1	1	0	
+79	158	assert_eq	1	1	0	
+80	159	assert_eq	1	0	1	assertion `left == right` failed   left: R8  right: R10
+81	161	assert_eq	1	1	0	
+82	162	assert_eq	1	1	0	
+83	163	assert_eq	1	0	1	assertion `left == right` failed   left: R8  right: R10
+84	165	assert_eq	1	1	0	
+85	166	assert_eq	1	1	0	
+86	167	assert_eq	1	0	1	assertion `left == right` failed   left: R8  right: Q
+87	169	assert_eq	1	1	0	
+88	170	assert_eq	1	1	0	
+89	171	assert_eq	1	0	1	assertion `left == right` failed   left: R8  right: Q
+90	173	assert_eq	1	1	0	
+91	174	assert_eq	1	1	0	
+92	175	assert_eq	1	0	1	assertion `left == right` failed   left: R8  right: Q
+93	178	assert_eq	1	0	1	assertion `left == right` failed   left: 7  right: 6
+94	179	assert_eq	1	1	0	
+95	180	assert_eq	1	0	1	assertion `left == right` failed   left: R8  right: Q
+96	183	assert_eq	1	0	1	assertion `left == right` failed   left: 7  right: 5
+97	184	assert_eq	1	1	0	
+98	185	assert_eq	1	0	1	assertion `left == right` failed   left: R8  right: R10
+99	188	assert_eq	1	1	0	
+100	189	assert_eq	1	1	0	
+101	190	assert_eq	1	1	0	
+102	195	assert	1	1	0	
+103	197	assert	1	1	0	
+104	199	assert_eq	1	1	0	
+105	200	assert_eq	1	1	0	
+106	201	assert_eq	1	0	1	assertion `left == right` failed   left: R2  right: R9
+107	205	assert	1	1	0	
+108	207	assert	1	1	0	
+109	209	assert_eq	1	0	1	assertion `left == right` failed   left: J  right: R9
+110	211	assert_eq	1	0	1	assertion `left == right` failed   left: J  right: R9
+111	213	assert_eq	1	0	1	assertion `left == right` failed   left: R2  right: R10
+112	215	assert_eq	1	0	1	assertion `left == right` failed   left: R2  right: R10
+113	217	assert_eq	1	0	1	assertion `left == right` failed   left: 3  right: 2
+114	229	assert	52000	52000	0	
+115	231	assert	52000	52000	0	
+116	235	assert_eq	52	1	51	assertion `left == right` failed   left: 941  right: 1001

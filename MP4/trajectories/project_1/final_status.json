@@ -1,0 +1,43 @@
+{
+  "status": "token_budget",
+  "iterations": 6,
+  "phase": "B",
+  "build_ok": true,
+  "core": {
+    "passed": 16,
+    "failed": 0,
+    "failed_names": [],
+    "total": 16
+  },
+  "extra": {
+    "passed": 0,
+    "failed": 0,
+    "failed_names": [],
+    "total": 0
+  },
+  "clippy": {
+    "correctness": 0,
+    "style": 6,
+    "complexity": 4,
+    "perf": 0
+  },
+  "unsafe": {
+    "unsafe_lines": 0,
+    "unsafe_calls": 0,
+    "unsafe_casts": 0,
+    "pointer_arithmetic": 0,
+    "unsafe_blocks": 0,
+    "unsafe_fns": 0,
+    "source": "builtin-estimate"
+  },
+  "assertion_diagnostics": null,
+  "interface_missing": [],
+  "core_ok": true,
+  "extra_ok": true,
+  "tokens": {
+    "prompt": 470467,
+    "completion": 31235,
+    "calls": 56,
+    "requests": 56
+  }
+}

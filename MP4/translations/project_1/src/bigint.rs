@@ -4,7 +4,7 @@ use std::fmt;
 #[derive(Clone, Debug)]
 pub struct BigInt {
     negative: bool,
-    digits: Vec<u8>,  // base-10 digits, most-significant first
+    digits: Vec<u8>,
 }
 
 impl BigInt {
@@ -16,82 +16,39 @@ impl BigInt {
     }
 
     pub fn is_64_bit(&self) -> bool {
-        if self.negative {
-            if self.digits.len() > 10 {
-                return false;
-            }
-            if self.digits.len() < 10 {
-                return true;
-            }
-        } else {
-            if self.digits.len() > 10 {
-                return false;
-            }
-            if self.digits.len() < 10 {
-                return true;
-            }
-        }
-        false
+        self.digits.len() < 10
     }
 
     pub fn remove_leading_zeros(&mut self) {
-        let mut leading_zeros = 0;
-        for &digit in &self.digits {
-            if digit == 0 {
-                leading_zeros += 1;
-            } else {
-                break;
-            }
-        }
-
-        if leading_zeros > 0 {
-            if leading_zeros >= self.digits.len() {
-                self.digits = vec![0];
-                self.negative = false;
-            } else {
-                self.digits.drain(0..leading_zeros);
-            }
+        let count = self.digits.iter().take_while(|&&d| d == 0).count();
+        if count >= self.digits.len() {
+            self.digits = vec![0];
+        } else if count > 0 {
+            self.digits.drain(0..count);
         }
     }
 
     pub fn from_int(n: i64) -> Self {
-        let mut result = BigInt::zero();
-        
-        if n < 0 {
-            result.negative = true;
-            // Handle i64::MIN specially since -i64::MIN overflows
-            if n == i64::MIN {
-                // i64::MIN = -9223372036854775808
-                // We'll build it digit by digit
-                result.digits = vec![9,2,2,3,3,7,2,0,3,6,8,5,4,7,7,5,8,0,8];
-                result.remove_leading_zeros();
-                return result;
-            }
-        } else {
-            result.negative = false;
-        }
-        
-        let mut m = n.abs();
-        
-        if m == 0 {
+        if n == 0 {
             return BigInt::zero();
         }
-        
+        let negative = n < 0;
+        let mut mag = n.unsigned_abs();
         let mut digits = Vec::new();
-        while m > 0 {
-            digits.push((m % 10) as u8);
-            m /= 10;
+        while mag > 0 {
+            digits.push((mag % 10) as u8);
+            mag /= 10;
         }
         digits.reverse();
-        result.digits = digits;
+        let mut result = BigInt { negative, digits };
         result.remove_leading_zeros();
         result
     }
 
     pub fn to_int(&self) -> i64 {
         let mut result: i64 = 0;
-        for &digit in &self.digits {
-            result = result.wrapping_mul(10).wrapping_add(digit as i64);
+        for &d in &self.digits {
+            result = result.wrapping_mul(10).wrapping_add(d as i64);
         }
         if self.negative {
             result = result.wrapping_neg();
@@ -100,20 +57,15 @@ impl BigInt {
     }
 
     pub fn from_str(s: &str) -> Self {
-        let mut result = BigInt::zero();
-        let mut chars = s.chars().peekable();
-        
-        if let Some(&'-') = chars.peek() {
-            result.negative = true;
-            chars.next();
-        } else {
-            result.negative = false;
+        let (negative, rest) = match s.strip_prefix('-') {
+            Some(r) => (true, r),
+            None => (false, s),
+        };
+        if rest.is_empty() {
+            return BigInt::zero();
         }
-        
-        let digits: Vec<u8> = chars.map(|c| (c as u8) - b'0').collect();
-        result.digits = digits;
-        // Note: C does NOT call remove_leading_zeros here
-        result
+        let digits: Vec<u8> = rest.bytes().map(|b| b - b'0').collect();
+        BigInt { negative, digits }
     }
 
     pub fn copy(&self) -> BigInt {
@@ -121,302 +73,142 @@ impl BigInt {
     }
 
     pub fn print(&self) {
-        println!("{}", self);
+        print!("{}", self);
     }
 
     pub fn is_zero(&self) -> bool {
-        let mut temp = self.clone();
-        temp.remove_leading_zeros();
-        temp.digits.len() == 1 && temp.digits[0] == 0
+        let mut c = self.clone();
+        c.remove_leading_zeros();
+        c.digits.len() == 1 && c.digits[0] == 0
     }
 
     pub fn lt_zero(&self) -> bool {
-        let mut temp = self.clone();
-        temp.remove_leading_zeros();
-        temp.negative && !(temp.digits.len() == 1 && temp.digits[0] == 0)
+        if self.is_zero() {
+            false
+        } else {
+            self.negative
+        }
     }
 
     pub fn gt_zero(&self) -> bool {
-        let mut temp = self.clone();
-        temp.remove_leading_zeros();
-        !temp.negative && !(temp.digits.len() == 1 && temp.digits[0] == 0)
+        if self.is_zero() {
+            false
+        } else {
+            !self.negative
+        }
     }
 
     pub fn lezero(&self) -> bool {
-        let mut temp = self.clone();
-        temp.remove_leading_zeros();
-        temp.negative || (temp.digits.len() == 1 && temp.digits[0] == 0)
+        if self.is_zero() {
+            true
+        } else {
+            self.negative
+        }
     }
 
     pub fn gezero(&self) -> bool {
-        let mut temp = self.clone();
-        temp.remove_leading_zeros();
-        !temp.negative || (temp.digits.len() == 1 && temp.digits[0] == 0)
+        if self.is_zero() {
+            true
+        } else {
+            !self.negative
+        }
     }
 
     pub fn abs(&self) -> Self {
-        let mut result = self.clone();
-        result.negative = false;
-        result
-    }
-
-    // Helper: compare absolute values (ignoring sign)
-    fn cmp_abs(&self, other: &Self) -> Ordering {
-        let mut a = self.clone();
-        let mut b = other.clone();
-        a.remove_leading_zeros();
-        b.remove_leading_zeros();
-        
-        if a.digits.len() != b.digits.len() {
-            return a.digits.len().cmp(&b.digits.len());
-        }
-        
-        for (da, db) in a.digits.iter().zip(b.digits.iter()) {
-            if da != db {
-                return da.cmp(db);
-            }
-        }
-        Ordering::Equal
+        let mut c = self.clone();
+        c.negative = false;
+        c
     }
 
     pub fn add(&self, other: &Self) -> Self {
-        // Fast path for 64-bit integers
-        if self.is_64_bit() && other.is_64_bit() {
-            let a = self.to_int();
-            let b = other.to_int();
-            return BigInt::from_int(a.wrapping_add(b));
-        }
-
-        let mut a = self.clone();
-        let mut b = other.clone();
-        a.remove_leading_zeros();
-        b.remove_leading_zeros();
-
-        // If signs are the same, add absolute values and keep sign
-        if a.negative == b.negative {
-            let mut result = BigInt::zero();
-            result.negative = a.negative;
-            
-            let mut carry = 0u8;
-            let mut i = a.digits.len();
-            let mut j = b.digits.len();
-            
-            while i > 0 || j > 0 || carry > 0 {
-                let da = if i > 0 { a.digits[i - 1] } else { 0 };
-                let db = if j > 0 { b.digits[j - 1] } else { 0 };
-                
-                let sum = da + db + carry;
-                result.digits.insert(0, sum % 10);
-                carry = sum / 10;
-                
-                if i > 0 { i -= 1; }
-                if j > 0 { j -= 1; }
+        if self.negative == other.negative {
+            let mut r = add_magnitude(&self.digits, &other.digits);
+            r.negative = self.negative;
+            r.remove_leading_zeros();
+            if r.is_zero() {
+                r.negative = false;
             }
-            
-            result.remove_leading_zeros();
-            result
+            r
+        } else if self.negative {
+            // self negative, other positive: other - |self|
+            sub_magnitude(&other.digits, &self.digits)
         } else {
-            // Signs differ: subtract smaller absolute value from larger
-            match a.cmp_abs(&b) {
-                Ordering::Equal => BigInt::zero(),
-                Ordering::Greater => {
-                    // |a| > |b|, result has sign of a
-                    let mut result = BigInt::zero();
-                    result.negative = a.negative;
-                    
-                    let mut borrow = 0i8;
-                    let mut i = a.digits.len();
-                    let mut j = b.digits.len();
-                    
-                    while i > 0 {
-                        let da = a.digits[i - 1] as i8;
-                        let db = if j > 0 { b.digits[j - 1] as i8 } else { 0 };
-                        
-                        let mut diff = da - db - borrow;
-                        if diff < 0 {
-                            diff += 10;
-                            borrow = 1;
-                        } else {
-                            borrow = 0;
-                        }
-                        
-                        result.digits.insert(0, diff as u8);
-                        
-                        i -= 1;
-                        if j > 0 { j -= 1; }
-                    }
-                    
-                    result.remove_leading_zeros();
-                    result
-                }
-                Ordering::Less => {
-                    // |b| > |a|, result has sign of b
-                    let mut result = BigInt::zero();
-                    result.negative = b.negative;
-                    
-                    let mut borrow = 0i8;
-                    let mut i = a.digits.len();
-                    let mut j = b.digits.len();
-                    
-                    while j > 0 {
-                        let da = if i > 0 { a.digits[i - 1] as i8 } else { 0 };
-                        let db = b.digits[j - 1] as i8;
-                        
-                        let mut diff = db - da - borrow;
-                        if diff < 0 {
-                            diff += 10;
-                            borrow = 1;
-                        } else {
-                            borrow = 0;
-                        }
-                        
-                        result.digits.insert(0, diff as u8);
-                        
-                        if i > 0 { i -= 1; }
-                        j -= 1;
-                    }
-                    
-                    result.remove_leading_zeros();
-                    result
-                }
-            }
+            // self positive, other negative: self - |other|
+            sub_magnitude(&self.digits, &other.digits)
         }
     }
 
     pub fn sub(&self, other: &Self) -> Self {
-        // a - b = a + (-b)
-        let mut neg_other = other.clone();
-        neg_other.negative = !other.negative;
+        let neg_other = BigInt {
+            negative: !other.negative,
+            digits: other.digits.clone(),
+        };
         self.add(&neg_other)
     }
 
     pub fn inc(&mut self) {
-        let one = BigInt::from_int(1);
-        *self = self.add(&one);
+        *self = self.add(&BigInt::from_int(1));
     }
 
     pub fn dec(&mut self) {
-        let one = BigInt::from_int(1);
-        *self = self.sub(&one);
+        *self = self.sub(&BigInt::from_int(1));
     }
 
     pub fn mul(&self, other: &Self) -> Self {
-        // Fast path for 64-bit integers
-        if self.is_64_bit() && other.is_64_bit() {
-            let a = self.to_int();
-            let b = other.to_int();
-            return BigInt::from_int(a.wrapping_mul(b));
-        }
-
-        let mut a = self.clone();
-        let mut b = other.clone();
-        a.remove_leading_zeros();
-        b.remove_leading_zeros();
-
-        if a.is_zero() || b.is_zero() {
-            return BigInt::zero();
-        }
-
-        let mut result = BigInt::zero();
-        result.negative = a.negative != b.negative;
-
-        // Grade-school multiplication
-        let mut temp_results: Vec<BigInt> = Vec::new();
-        
-        for (i, &db) in b.digits.iter().rev().enumerate() {
-            if db == 0 {
-                continue;
+        let negative = self.negative != other.negative;
+        let a = &self.digits;
+        let b = &other.digits;
+        let mut acc = vec![0u32; a.len() + b.len()];
+        for (i, &da) in a.iter().rev().enumerate() {
+            for (j, &db) in b.iter().rev().enumerate() {
+                acc[i + j] += (da as u32) * (db as u32);
             }
-            
-            let mut carry = 0u8;
-            let mut partial = BigInt::zero();
-            partial.digits = vec![0; i]; // Shift by i positions (add zeros at end)
-            
-            for &da in a.digits.iter().rev() {
-                let prod = da * db + carry;
-                partial.digits.push(prod % 10);
-                carry = prod / 10;
-            }
-            
-            if carry > 0 {
-                partial.digits.push(carry);
-            }
-            
-            partial.digits.reverse();
-            partial.remove_leading_zeros();
-            temp_results.push(partial);
         }
-
-        // Sum all partial results
-        for partial in temp_results {
-            result = result.add(&partial);
+        // normalize
+        let mut carry = 0u32;
+        for slot in acc.iter_mut() {
+            let v = *slot + carry;
+            *slot = v % 10;
+            carry = v / 10;
         }
-
+        while carry > 0 {
+            acc.push(carry % 10);
+            carry /= 10;
+        }
+        let mut digits: Vec<u8> = acc.into_iter().rev().map(|d| d as u8).collect();
+        if digits.is_empty() {
+            digits.push(0);
+        }
+        let mut result = BigInt { negative, digits };
         result.remove_leading_zeros();
+        if result.is_zero() {
+            result.negative = false;
+        }
         result
     }
 
     pub fn divmod(&self, other: &Self) -> (Self, Self) {
-        let mut a = self.clone();
-        let mut b = other.clone();
-        a.remove_leading_zeros();
-        b.remove_leading_zeros();
-
-        if b.is_zero() {
-            panic!("Division by zero");
+        let negative_q = self.negative != other.negative;
+        let a = self.abs();
+        let b = other.abs();
+        let (q_digits, r_digits) = long_division(&a.digits, &b.digits);
+        let mut q = BigInt {
+            negative: negative_q,
+            digits: q_digits,
+        };
+        q.remove_leading_zeros();
+        if q.is_zero() {
+            q.negative = false;
         }
-
-        // Fast path for 64-bit integers
-        if a.is_64_bit() && b.is_64_bit() {
-            let dividend = a.to_int();
-            let divisor = b.to_int();
-            let quot = BigInt::from_int(dividend.wrapping_div(divisor));
-            let rem = BigInt::from_int(dividend.wrapping_rem(divisor));
-            return (quot, rem);
+        let mut r = BigInt {
+            negative: self.negative,
+            digits: r_digits,
+        };
+        r.remove_leading_zeros();
+        if r.is_zero() {
+            r.negative = false;
         }
-
-        // Handle signs
-        let result_negative = a.negative != b.negative;
-        a.negative = false;
-        b.negative = false;
-
-        // If |a| < |b|, quotient is 0, remainder is a
-        if a.cmp_abs(&b) == Ordering::Less {
-            let mut quotient = BigInt::zero();
-            let mut remainder = a;
-            remainder.negative = self.negative;
-            return (quotient, remainder);
-        }
-
-        // Long division
-        let mut quotient = BigInt::zero();
-        quotient.digits = vec![0; a.digits.len()];
-        
-        let mut remainder = BigInt::zero();
-        remainder.digits = Vec::new();
-
-        for &digit in &a.digits {
-            remainder.digits.push(digit);
-            remainder.remove_leading_zeros();
-            
-            let mut count = 0u8;
-            while remainder.cmp_abs(&b) != Ordering::Less {
-                remainder = remainder.sub(&b);
-                count += 1;
-            }
-            
-            quotient.digits[a.digits.len() - remainder.digits.len() - 1 + count as usize] = count;
-        }
-
-        quotient.remove_leading_zeros();
-        quotient.negative = result_negative;
-        
-        remainder.negative = self.negative;
-        if remainder.is_zero() {
-            remainder.negative = false;
-        }
-
-        (quotient, remainder)
+        (q, r)
     }
 
     pub fn div(&self, other: &Self) -> Self {
@@ -428,227 +220,311 @@ impl BigInt {
     }
 
     pub fn pow(&self, exponent: &Self) -> Self {
-        // Fast path for 64-bit integers
-        if self.is_64_bit() && exponent.is_64_bit() {
-            let base = self.to_int();
-            let exp = exponent.to_int();
-            if exp < 0 {
-                return BigInt::zero();
-            }
-            let mut result = 1i64;
-            let mut base = base;
-            let mut exp = exp as u64;
-            while exp > 0 {
-                if exp & 1 == 1 {
-                    result = result.wrapping_mul(base);
-                }
-                base = base.wrapping_mul(base);
-                exp >>= 1;
-            }
-            return BigInt::from_int(result);
+        if exponent.negative {
+            return BigInt::zero();
         }
-
-        let mut base = self.clone();
         let mut exp = exponent.clone();
         exp.remove_leading_zeros();
-        
-        if exp.is_zero() {
-            return BigInt::from_int(1);
-        }
-        
         let mut result = BigInt::from_int(1);
-        
-        while !exp.is_zero() {
-            if exp.is_odd() {
-                result = result.mul(&base);
-            }
-            exp = exp.div(&BigInt::from_int(2));
-            if !exp.is_zero() {
-                base = base.mul(&base);
-            }
+        let one = BigInt::from_int(1);
+        let mut e = BigInt::zero();
+        while e < exp {
+            result = result.mul(self);
+            e = e.add(&one);
         }
-        
         result
     }
 
     pub fn fast_pow(&self, exponent: &Self, modulo: &Self) -> Self {
-        // Fast path for 64-bit integers
-        if self.is_64_bit() && exponent.is_64_bit() && modulo.is_64_bit() {
-            let base = self.to_int();
-            let exp = exponent.to_int();
-            let mod_val = modulo.to_int();
-            
-            if mod_val == 0 {
-                return BigInt::zero();
-            }
-            
-            let mut result = 1i64;
-            let mut base = base.wrapping_rem(mod_val);
-            let mut exp = exp as u64;
-            
-            while exp > 0 {
-                if exp & 1 == 1 {
-                    result = (result.wrapping_mul(base)).wrapping_rem(mod_val);
-                }
-                base = (base.wrapping_mul(base)).wrapping_rem(mod_val);
-                exp >>= 1;
-            }
-            return BigInt::from_int(result);
-        }
-
-        let mut base = self.r#mod(modulo);
-        let mut exp = exponent.clone();
-        exp.remove_leading_zeros();
-        
-        if modulo.is_zero() {
+        if exponent.negative {
             return BigInt::zero();
         }
-        
+        let mut exp = exponent.clone();
+        exp.remove_leading_zeros();
+        if exp.is_zero() {
+            return BigInt::from_int(1);
+        }
+        let two = BigInt::from_int(2);
+        let mut base = self.r#mod(modulo);
+        if base.negative {
+            base = base.add(modulo);
+        }
         let mut result = BigInt::from_int(1);
-        
         while !exp.is_zero() {
             if exp.is_odd() {
                 result = result.mul(&base).r#mod(modulo);
             }
-            exp = exp.div(&BigInt::from_int(2));
+            exp = exp.div(&two);
             if !exp.is_zero() {
                 base = base.mul(&base).r#mod(modulo);
             }
         }
-        
+        if result.negative {
+            result = result.add(modulo);
+        }
         result
     }
 
     pub fn modinv(&self, modulo: &Self) -> Self {
-        // Extended Euclidean Algorithm
-        let mut a = self.clone();
+        let m0 = modulo.clone();
+        let mut a = self.r#mod(modulo);
+        if a.negative {
+            a = a.add(modulo);
+        }
         let mut m = modulo.clone();
-        a.remove_leading_zeros();
-        m.remove_leading_zeros();
-        
-        if m.is_zero() {
-            return BigInt::zero();
+        let mut y = BigInt::zero();
+        let mut x = BigInt::from_int(1);
+        while !a.is_zero() {
+            let (q, _) = m.divmod(&a);
+            let t = m.sub(&q.mul(&a));
+            m = a;
+            a = t;
+            let t2 = y.sub(&q.mul(&x));
+            y = x;
+            x = t2;
         }
-        
-        let mut t = BigInt::zero();
-        let mut new_t = BigInt::from_int(1);
-        let mut r = m.clone();
-        let mut new_r = a.r#mod(&m);
-        
-        while !new_r.is_zero() {
-            let quotient = r.div(&new_r);
-            
-            let temp_t = t.sub(&quotient.mul(&new_t));
-            t = new_t;
-            new_t = temp_t;
-            
-            let temp_r = r.sub(&quotient.mul(&new_r));
-            r = new_r;
-            new_r = temp_r;
+        if m.lt_zero() {
+            m = m.add(&m0);
         }
-        
-        if r.gt(&BigInt::from_int(1)) {
-            return BigInt::zero(); // Not invertible
+        if m == BigInt::from_int(1) {
+            let mut result = y.r#mod(&m0);
+            if result.negative {
+                result = result.add(&m0);
+            }
+            result
+        } else {
+            BigInt::zero()
         }
-        
-        if t.lt_zero() {
-            t = t.add(&m);
-        }
-        
-        t
     }
 
     pub fn sqrt(&self) -> Self {
-        let mut n = self.clone();
-        n.remove_leading_zeros();
-        
-        if n.lt_zero() {
-            return BigInt::zero();
-        }
-        
-        if n.is_zero() {
-            return BigInt::zero();
-        }
-        
-        // Binary search for sqrt
-        let mut low = BigInt::from_int(1);
-        let mut high = n.clone();
-        
-        while low.le(&high) {
-            let mid = low.add(&high).div(&BigInt::from_int(2));
-            let mid_sq = mid.mul(&mid);
-            
-            match mid_sq.cmp_abs(&n) {
-                Ordering::Equal => return mid,
-                Ordering::Less => {
-                    low = mid.add(&BigInt::from_int(1));
-                }
-                Ordering::Greater => {
-                    if mid.gt(&BigInt::from_int(1)) {
-                        high = mid.sub(&BigInt::from_int(1));
-                    } else {
-                        high = BigInt::zero();
-                    }
-                }
+        // ceil(sqrt(n)) via binary search, matching C.
+        let mut low = BigInt::zero();
+        let mut high = self.clone();
+        let two = BigInt::from_int(2);
+        while low < high {
+            let mid = low.add(&high).div(&two);
+            let sq = mid.mul(&mid);
+            if sq < *self {
+                low = mid.add(&BigInt::from_int(1));
+            } else {
+                high = mid;
             }
         }
-        
-        high
+        low
     }
 
     pub fn is_even(&self) -> bool {
-        let mut temp = self.clone();
-        temp.remove_leading_zeros();
-        temp.digits.last().map_or(true, |&d| d % 2 == 0)
+        self.digits.last().map_or(true, |&d| d % 2 == 0)
     }
 
     pub fn is_odd(&self) -> bool {
-        !self.is_even()
+        self.digits.last().map_or(false, |&d| d % 2 == 1)
     }
 
     pub fn is_prime(&self) -> bool {
-        let mut n = self.clone();
-        n.remove_leading_zeros();
-        
-        if n.le(&BigInt::from_int(1)) {
+        if self.is_even() {
             return false;
         }
-        
-        if n.eq(&BigInt::from_int(2)) || n.eq(&BigInt::from_int(3)) {
-            return true;
+        if self.digits.len() > 1 {
+            if let Some(&last) = self.digits.last() {
+                if last == 5 || last == 0 {
+                    return false;
+                }
+            }
         }
-        
-        if n.is_even() {
+        let digit_sum: u32 = self.digits.iter().map(|&d| d as u32).sum();
+        if digit_sum % 3 == 0 {
             return false;
         }
-        
-        // Check if ends in 5
-        if n.digits.last() == Some(&5) {
-            return false;
-        }
-        
-        // Check divisibility by 3
-        let sum: u32 = n.digits.iter().map(|&d| d as u32).sum();
-        if sum % 3 == 0 {
-            return false;
-        }
-        
-        // Trial division up to sqrt(n)
-        let sqrt_n = n.sqrt();
-        let mut i = BigInt::from_int(5);
-        
-        while i.le(&sqrt_n) {
-            if n.r#mod(&i).is_zero() {
+        let limit = self.sqrt();
+        let mut i = BigInt::from_int(2);
+        let one = BigInt::from_int(1);
+        while i <= limit {
+            if self.r#mod(&i).is_zero() {
                 return false;
             }
-            i = i.add(&BigInt::from_int(2));
-            if n.r#mod(&i).is_zero() {
-                return false;
-            }
-            i = i.add(&BigInt::from_int(4));
+            i = i.add(&one);
         }
-        
         true
+    }
+}
+
+fn add_magnitude(a: &[u8], b: &[u8]) -> BigInt {
+    let mut result = Vec::new();
+    let mut carry = 0u8;
+    let mut i = a.len();
+    let mut j = b.len();
+    while i > 0 || j > 0 || carry > 0 {
+        let da = if i > 0 {
+            i -= 1;
+            a[i]
+        } else {
+            0
+        };
+        let db = if j > 0 {
+            j -= 1;
+            b[j]
+        } else {
+            0
+        };
+        let s = da + db + carry;
+        result.push(s % 10);
+        carry = s / 10;
+    }
+    result.reverse();
+    if result.is_empty() {
+        result.push(0);
+    }
+    BigInt {
+        negative: false,
+        digits: result,
+    }
+}
+
+/// Compute |a| - |b| assuming |a| >= |b|. Result sign determined by comparison.
+fn sub_magnitude(a: &[u8], b: &[u8]) -> BigInt {
+    // Compare magnitudes
+    let a_trim = trim(a);
+    let b_trim = trim(b);
+    let a_ge_b = if a_trim.len() != b_trim.len() {
+        a_trim.len() > b_trim.len()
+    } else {
+        a_trim >= b_trim
+    };
+    let (big, small, negative) = if a_ge_b {
+        (a_trim, b_trim, false)
+    } else {
+        (b_trim, a_trim, true)
+    };
+    let mut result = Vec::new();
+    let mut borrow = 0i32;
+    let mut i = big.len();
+    let mut j = small.len();
+    while i > 0 {
+        i -= 1;
+        let db = if j > 0 {
+            j -= 1;
+            small[j] as i32
+        } else {
+            0
+        };
+        let mut diff = big[i] as i32 - db - borrow;
+        if diff < 0 {
+            diff += 10;
+            borrow = 1;
+        } else {
+            borrow = 0;
+        }
+        result.push(diff as u8);
+    }
+    result.reverse();
+    let mut r = BigInt {
+        negative,
+        digits: result,
+    };
+    r.remove_leading_zeros();
+    if r.is_zero() {
+        r.negative = false;
+    }
+    r
+}
+
+fn trim(a: &[u8]) -> &[u8] {
+    let count = a.iter().take_while(|&&d| d == 0).count();
+    if count >= a.len() {
+        &a[a.len() - 1..]
+    } else {
+        &a[count..]
+    }
+}
+
+/// Long division on decimal digit slices. Returns (quotient_digits, remainder_digits).
+fn long_division(a: &[u8], b: &[u8]) -> (Vec<u8>, Vec<u8>) {
+    let a = trim(a);
+    let b = trim(b);
+    // If divisor is zero, avoid infinite loop; return zero.
+    if b.len() == 1 && b[0] == 0 {
+        return (vec![0], vec![0]);
+    }
+    let mut quotient = Vec::new();
+    let mut remainder: Vec<u8> = Vec::new();
+    for &digit in a {
+        // remainder = remainder * 10 + digit
+        remainder.push(digit);
+        // trim leading zeros of remainder
+        let count = remainder.iter().take_while(|&&d| d == 0).count();
+        if count > 0 && count < remainder.len() {
+            remainder.drain(0..count);
+        } else if count >= remainder.len() {
+            remainder = vec![0];
+        }
+        // find how many times b fits into remainder (0..9)
+        let mut q = 0u8;
+        while cmp_mag(&remainder, b) != Ordering::Less {
+            remainder = sub_mag_vec(&remainder, b);
+            q += 1;
+        }
+        quotient.push(q);
+    }
+    if quotient.is_empty() {
+        quotient.push(0);
+    }
+    // trim quotient
+    let count = quotient.iter().take_while(|&&d| d == 0).count();
+    if count >= quotient.len() {
+        quotient = vec![0];
+    } else if count > 0 {
+        quotient.drain(0..count);
+    }
+    if remainder.is_empty() {
+        remainder.push(0);
+    }
+    (quotient, remainder)
+}
+
+fn cmp_mag(a: &[u8], b: &[u8]) -> Ordering {
+    let a = trim(a);
+    let b = trim(b);
+    if a.len() != b.len() {
+        return a.len().cmp(&b.len());
+    }
+    a.cmp(b)
+}
+
+fn sub_mag_vec(a: &[u8], b: &[u8]) -> Vec<u8> {
+    let a = trim(a);
+    let b = trim(b);
+    let mut result = Vec::new();
+    let mut borrow = 0i32;
+    let mut i = a.len();
+    let mut j = b.len();
+    while i > 0 {
+        i -= 1;
+        let db = if j > 0 {
+            j -= 1;
+            b[j] as i32
+        } else {
+            0
+        };
+        let mut diff = a[i] as i32 - db - borrow;
+        if diff < 0 {
+            diff += 10;
+            borrow = 1;
+        } else {
+            borrow = 0;
+        }
+        result.push(diff as u8);
+    }
+    result.reverse();
+    let count = result.iter().take_while(|&&d| d == 0).count();
+    if count >= result.len() {
+        vec![0]
+    } else if count > 0 {
+        result.drain(0..count);
+        result
+    } else {
+        result
     }
 }
 
@@ -657,44 +533,47 @@ pub fn gt(a: &BigInt, b: &BigInt) -> bool {
     let mut b = b.clone();
     a.remove_leading_zeros();
     b.remove_leading_zeros();
-    
-    if a.negative != b.negative {
-        return !a.negative && b.negative;
+    if a.digits.len() > b.digits.len() {
+        return !a.negative;
     }
-    
-    if a.negative {
-        // Both negative: larger absolute value is smaller
-        a.cmp_abs(&b) == Ordering::Less
-    } else {
-        // Both positive: larger absolute value is larger
-        a.cmp_abs(&b) == Ordering::Greater
+    if a.digits.len() < b.digits.len() {
+        return a.negative;
     }
+    for (da, db) in a.digits.iter().zip(b.digits.iter()) {
+        if da != db {
+            return if da > db { !a.negative } else { a.negative };
+        }
+    }
+    false
 }
 
 pub fn lt(a: &BigInt, b: &BigInt) -> bool {
-    gt(b, a)
+    !ge(a, b)
 }
 
 pub fn ge(a: &BigInt, b: &BigInt) -> bool {
-    !lt(a, b)
+    gt(a, b) || a == b
 }
 
 pub fn le(a: &BigInt, b: &BigInt) -> bool {
     !gt(a, b)
 }
 
-pub fn delete(_a: &mut BigInt) {
-    // No-op in Rust (RAII)
+pub fn delete(a: &mut BigInt) {
+    *a = BigInt::zero();
 }
 
 impl std::ops::Neg for BigInt {
     type Output = BigInt;
     fn neg(self) -> BigInt {
-        let mut result = self;
-        if !result.is_zero() {
-            result.negative = !result.negative;
+        if self.is_zero() {
+            BigInt::zero()
+        } else {
+            BigInt {
+                negative: !self.negative,
+                digits: self.digits,
+            }
         }
-        result
     }
 }
 
@@ -704,8 +583,13 @@ impl PartialEq for BigInt {
         let mut b = other.clone();
         a.remove_leading_zeros();
         b.remove_leading_zeros();
-        
-        a.negative == b.negative && a.digits == b.digits
+        if a.digits.len() != b.digits.len() {
+            return false;
+        }
+        if a.negative != b.negative {
+            return false;
+        }
+        a.digits == b.digits
     }
 }
 
@@ -713,44 +597,25 @@ impl Eq for BigInt {}
 
 impl PartialOrd for BigInt {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for BigInt {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let mut a = self.clone();
-        let mut b = other.clone();
-        a.remove_leading_zeros();
-        b.remove_leading_zeros();
-        
-        if a.negative != b.negative {
-            if a.negative {
-                return Ordering::Less;
-            } else {
-                return Ordering::Greater;
-            }
-        }
-        
-        if a.negative {
-            // Both negative: reverse order
-            a.cmp_abs(&b).reverse()
+        if self == other {
+            Some(Ordering::Equal)
+        } else if gt(self, other) {
+            Some(Ordering::Greater)
+        } else if lt(self, other) {
+            Some(Ordering::Less)
         } else {
-            a.cmp_abs(&b)
+            Some(Ordering::Equal)
         }
     }
 }
 
 impl fmt::Display for BigInt {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut temp = self.clone();
-        temp.remove_leading_zeros();
-        
-        if temp.negative {
+        if self.negative {
             write!(f, "-")?;
         }
-        for &digit in &temp.digits {
-            write!(f, "{}", digit)?;
+        for &d in &self.digits {
+            write!(f, "{}", d)?;
         }
         Ok(())
     }

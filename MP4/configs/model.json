@@ -1,13 +1,14 @@
 {
-  "base_url": "https://openrouter.ai/api/v1",
-  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "base_url": "https://api.deepseek.com",
+  "model": "deepseek-flash",
   "fallback_model": null,
-  "api_key_env": "OPENROUTER_API_KEY",
+  "api_key_env": "DEEPSEEK_API_KEY",
   "temperature": 0.2,
   "top_p": 0.95,
   "max_tokens": 8192,
-  "reasoning": {"max_tokens": 2048},
-  "timeout_seconds": 240,
-  "max_retries": 6,
-  "backoff_base_seconds": 4
+  "thinking": {"type": "disabled"},
+  "timeout_seconds": 120,
+  "max_retries": 2,
+  "backoff_base_seconds": 2,
+  "max_retry_wait_seconds": 20
 }

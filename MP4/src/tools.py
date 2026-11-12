@@ -63,6 +63,8 @@ class Workspace:
 
     def grep(self, pattern, path="."):
         kind, root, p, v = self.resolve(path)
+        if not p.exists():
+            return f"ERROR: no such path: {path}"
         try:
             rx = re.compile(pattern)
         except re.error as e:
@@ -90,8 +92,14 @@ class Workspace:
         p.write_text(content, encoding="utf-8")
         return f"wrote {v} ({len(content.encode())} bytes, {content.count(chr(10))} lines)"
 
-    def run_cargo(self, cmd, role):
+    def run_cargo(self, cmd, role, target=None, test_filter=None):
         h = self.harness
+        if (target or test_filter) and cmd != "test":
+            return 'ERROR: target and filter are only valid with cmd="test"'
+        if target and not re.fullmatch(r"[A-Za-z0-9_-]+", target):
+            return "ERROR: test target must contain only letters, digits, '_' or '-'"
+        if test_filter and any(ch in test_filter for ch in "\0\r\n"):
+            return "ERROR: test filter must be a single line"
         if cmd == "check":
             rc, out = h.cargo(["check", "--all-targets"])
             return truncate(out, self.cfg["obs_limit_chars"]) if rc else "cargo check: OK"
@@ -99,6 +107,17 @@ class Workspace:
             ok, out, _ = h.build()
             return "cargo build: OK" if ok else truncate(out, self.cfg["obs_limit_chars"])
         if cmd == "test":
+            if target or test_filter:
+                rc, out, _, _, _ = h.test(target=target, test_filter=test_filter)
+                result_counts = re.findall(r"test result: .*?\b(\d+) passed; (\d+) failed;", out)
+                ran_tests = any(int(passed) + int(failed) > 0 for passed, failed in result_counts)
+                if rc == 124:
+                    status = "TIMED OUT"
+                elif rc == 0 and result_counts and not ran_tests:
+                    status = "NO TESTS EXECUTED"
+                else:
+                    status = "OK" if rc == 0 else f"FAILED (exit={rc})"
+                return f"cargo test {status}:\n" + truncate(out, self.cfg["obs_limit_chars"])
             r = h.evaluate(full=False)
             return h.render(r, self.cfg["obs_limit_chars"])
         if cmd == "clippy":

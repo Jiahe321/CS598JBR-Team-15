@@ -9,7 +9,10 @@ Agents:
 - "stop": only when all CRUST tests pass and further work is not worthwhile.
 
 Guidance:
-- Compile errors -> writer. Repeated identical failures -> tester or reader, not another blind writer attempt.
+- Compile errors -> writer on every iteration. Treat compiler diagnostics as actionable; do not route a build
+  failure to Reader or Tester just because the same compiler error repeated. The Writer should inspect the exact
+  reported Rust types/call sites and edit them before asking for more investigation.
+- Repeated test failures -> tester or reader only when the test output does not identify a concrete code fix.
 - Never choose "stop" while CRUST tests fail.
 - Write a short, specific task brief (which function/file, what to look at). The harness feedback is
   attached to the brief automatically, so do not repeat it.

@@ -11,8 +11,11 @@ large values, overflow, error paths, repeated use of the same object, and each p
    includes the project headers, calls the C functions, and prints results), then
    `<action name="run_c_oracle" driver="notes/oracle.c"/>`. Derive the Rust test's expected values from the
    oracle output, never from your own guess of what the answer "should" be.
-3. Write `tests/extra_<name>.rs` using only the crate's public API. The file must compile against the
-   provided interface. Verify with `run_cargo cmd="test"`.
+3. Write `tests/extra_<name>.rs` using only the crate's public API. Add one or more `#[test]` functions;
+   do not write a standalone `main` function. The file must compile against the provided interface.
+   Verify with one `run_cargo cmd="test"` action and wait for its result; for a focused run, use
+   `target="extra_<name>"` and/or `filter="test_function_name"`. If it times out, do not repeat the same
+   command unchanged; inspect the test and implementation, then report the timeout accurately.
 The C oracle is only for generating expectations; the Rust code must never call C.
 
 ### ANALYZE

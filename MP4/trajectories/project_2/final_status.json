@@ -1,0 +1,276 @@
+{
+  "status": "token_budget",
+  "iterations": 6,
+  "phase": "A",
+  "build_ok": true,
+  "core": {
+    "passed": 0,
+    "failed": 1,
+    "failed_names": [
+      "unittests src\\bin\\test.rs::test_card_operations"
+    ],
+    "total": 1
+  },
+  "extra": {
+    "passed": 0,
+    "failed": 0,
+    "failed_names": [],
+    "total": 0
+  },
+  "clippy": {
+    "correctness": 0,
+    "style": 4,
+    "complexity": 1,
+    "perf": 0
+  },
+  "unsafe": {
+    "unsafe_lines": 0,
+    "unsafe_calls": 0,
+    "unsafe_casts": 0,
+    "pointer_arithmetic": 0,
+    "unsafe_blocks": 0,
+    "unsafe_fns": 0,
+    "source": "builtin-estimate"
+  },
+  "assertion_diagnostics": {
+    "status": "complete",
+    "report": "D:\\Desktop\\26fall\\CS598\\MP1\\repository\\CS598JBR-Team-15\\MP4\\trajectories\\project_2\\assertion_diagnostics.tsv",
+    "assertion_sites": 116,
+    "executions": 104287,
+    "passed": 104189,
+    "failed": 98,
+    "failed_sites": [
+      {
+        "id": 1,
+        "line": 23,
+        "macro": "assert_eq",
+        "executions": 8,
+        "passed": 0,
+        "failed": 8,
+        "first_failure": "assertion `left == right` failed   left: ClubAce  right: SpadeAce"
+      },
+      {
+        "id": 2,
+        "line": 31,
+        "macro": "assert_eq",
+        "executions": 8,
+        "passed": 0,
+        "failed": 8,
+        "first_failure": "assertion `left == right` failed   left: ClubAce  right: SpadeAce"
+      },
+      {
+        "id": 3,
+        "line": 39,
+        "macro": "assert_eq",
+        "executions": 8,
+        "passed": 0,
+        "failed": 8,
+        "first_failure": "assertion `left == right` failed   left: ClubAce  right: SpadeAce"
+      },
+      {
+        "id": 4,
+        "line": 46,
+        "macro": "assert_eq",
+        "executions": 4,
+        "passed": 0,
+        "failed": 4,
+        "first_failure": "assertion `left == right` failed   left: Diamond2  right: Heart9"
+      },
+      {
+        "id": 5,
+        "line": 50,
+        "macro": "assert",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "Hand should be empty"
+      },
+      {
+        "id": 71,
+        "line": 147,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: J  right: R9"
+      },
+      {
+        "id": 74,
+        "line": 151,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: J  right: R9"
+      },
+      {
+        "id": 77,
+        "line": 155,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: R10"
+      },
+      {
+        "id": 80,
+        "line": 159,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: R10"
+      },
+      {
+        "id": 83,
+        "line": 163,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: R10"
+      },
+      {
+        "id": 86,
+        "line": 167,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: Q"
+      },
+      {
+        "id": 89,
+        "line": 171,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: Q"
+      },
+      {
+        "id": 92,
+        "line": 175,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: Q"
+      },
+      {
+        "id": 93,
+        "line": 178,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: 7  right: 6"
+      },
+      {
+        "id": 95,
+        "line": 180,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: Q"
+      },
+      {
+        "id": 96,
+        "line": 183,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: 7  right: 5"
+      },
+      {
+        "id": 98,
+        "line": 185,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: R10"
+      },
+      {
+        "id": 106,
+        "line": 201,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R2  right: R9"
+      },
+      {
+        "id": 109,
+        "line": 209,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: J  right: R9"
+      },
+      {
+        "id": 110,
+        "line": 211,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: J  right: R9"
+      },
+      {
+        "id": 111,
+        "line": 213,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R2  right: R10"
+      },
+      {
+        "id": 112,
+        "line": 215,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R2  right: R10"
+      },
+      {
+        "id": 113,
+        "line": 217,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: 3  right: 2"
+      },
+      {
+        "id": 116,
+        "line": 235,
+        "macro": "assert_eq",
+        "executions": 52,
+        "passed": 1,
+        "failed": 51,
+        "first_failure": "assertion `left == right` failed   left: 941  right: 1001"
+      }
+    ],
+    "diagnostic_exit_code": 101
+  },
+  "interface_missing": [
+    "pubfncreate_card(CardSuitRank)->Option<Self>",
+    "pubfndetach_from_collection(&mutself,&Option<Box<CardCollection>>)",
+    "pubfniterate_collection(&self)->&Self",
+    "pubfnstrtocard(&str)->Option<Self>"
+  ],
+  "core_ok": false,
+  "extra_ok": true,
+  "tokens": {
+    "prompt": 467039,
+    "completion": 38767,
+    "calls": 58,
+    "requests": 58
+  }
+}
