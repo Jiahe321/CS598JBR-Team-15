@@ -5,10 +5,112 @@ import re
 import shutil
 import subprocess
 import tempfile
+import tomllib
 from pathlib import Path
 
 CLIPPY_CATEGORIES = ["correctness", "style", "complexity", "perf"]
 NOISE = re.compile(r"^\s*(Compiling|Downloaded|Downloading|Blocking|Updating|Locking|Adding)\b")
+FAILURE_FINGERPRINT_VERSION = 2
+TEST_OUTPUT_BLOCK = re.compile(
+    r"^---- (?P<test>[^\n]+?) (?:stdout|stderr) ----[ \t]*\n"
+    r"(?P<body>.*?)(?=^---- [^\n]+? (?:stdout|stderr) ----[ \t]*$|"
+    r"^failures:[ \t]*$|^test result:|\Z)",
+    re.MULTILINE | re.DOTALL,
+)
+PANIC_HEADER = re.compile(
+    r"^thread ['\"](?P<thread>[^\n]+?)['\"] panicked at "
+    r"(?P<location>[^\n]+:\d+(?::\d+)?):[ \t]*(?:\n|$)",
+    re.MULTILINE,
+)
+
+
+def _normalize_test_output(text):
+    text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", text)
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def _normalize_evidence(text):
+    return re.sub(r"\s+", " ", _normalize_test_output(str(text))).strip()
+
+
+def _test_binary_at(text, offset):
+    matches = list(re.finditer(r"^[ \t]*Running (.+?)(?: \(|$)", text[:offset], re.MULTILINE))
+    return matches[-1].group(1).replace("\\", "/") if matches else ""
+
+
+def test_failure_details(text):
+    """Extract assertion evidence without treating compiler underlines as test headers."""
+    text = _normalize_test_output(text)
+    blocks = list(TEST_OUTPUT_BLOCK.finditer(text))
+    candidates = [(m.group("test").strip(), m.group("body"), m.start()) for m in blocks]
+    if not candidates:
+        # A crashed binary or --nocapture run may print a panic without a stdout section.
+        panics = list(PANIC_HEADER.finditer(text))
+        for index, panic in enumerate(panics):
+            end = panics[index + 1].start() if index + 1 < len(panics) else len(text)
+            candidates.append((panic.group("thread"), text[panic.start():end], panic.start()))
+
+    details = []
+    for test, body, offset in candidates:
+        binary = _test_binary_at(text, offset)
+        detail = {"test": f"{binary}::{test}" if binary else test, "location": ""}
+        panic = PANIC_HEADER.search(body)
+        message = body
+        if panic:
+            detail["location"] = panic.group("location").replace("\\", "/")
+            message = body[panic.end():]
+        # Backtraces, rerun advice and following test status lines are not assertion evidence.
+        message = re.split(
+            r"^(?:note:|stack backtrace:|test result:|failures:|test \S+ \.\.\.)", message,
+            maxsplit=1, flags=re.MULTILINE,
+        )[0].strip()
+        detail["message"] = _normalize_evidence(message)
+        actual = re.search(r"^[ \t]*left:[ \t]*(.*?)(?=^[ \t]*right:|\Z)", message,
+                           re.MULTILINE | re.DOTALL)
+        expected = re.search(r"^[ \t]*right:[ \t]*(.*)\Z", message, re.MULTILINE | re.DOTALL)
+        if actual:
+            detail["actual"] = _normalize_evidence(actual.group(1))
+        if expected:
+            detail["expected"] = _normalize_evidence(expected.group(1))
+        details.append(detail)
+    return details
+
+
+def failure_fingerprint(report):
+    """Version failure identity by observed evidence, not just the failing test's name."""
+    if not report.get("build_ok"):
+        errors = report.get("build_errors") or [report.get("build_text", "BUILD_FAILED")]
+        payload = {"kind": "build", "errors": sorted(_normalize_evidence(e) for e in errors)}
+    elif report.get("test_timed_out"):
+        payload = {"kind": "test_timeout"}
+    else:
+        names = sorted(name.replace("\\", "/") for bucket in ("core", "extra")
+                       for name in (report.get(bucket) or {}).get("failed_names", []))
+        details = report.get("failure_details")
+        if details is None:
+            details = test_failure_details(report.get("test_text", ""))
+        if names or details or report.get("test_rc") not in (None, 0):
+            evidence = []
+            for detail in details:
+                item = {key: _normalize_evidence(detail.get(key, ""))
+                        for key in ("test", "location", "message", "actual", "expected")}
+                item["test"] = item["test"].replace("\\", "/")
+                item["location"] = item["location"].replace("\\", "/")
+                evidence.append(item)
+            payload = {"kind": "test", "tests": names,
+                       "details": sorted(evidence, key=lambda item: json.dumps(item, sort_keys=True))}
+            if not evidence:
+                # Preserve crash/command errors even when libtest could not print an assertion block.
+                error_lines = [line for line in _normalize_test_output(report.get("test_text", "")).splitlines()
+                               if re.search(r"panicked|assertion|^\s*(?:left:|right:|error:|Caused by:)|signal:", line)]
+                payload["command_error"] = _normalize_evidence("\n".join(error_lines))
+                payload["exit_code"] = report.get("test_rc")
+        elif report.get("interface_missing"):
+            payload = {"kind": "interface", "missing": sorted(report["interface_missing"])}
+        else:
+            return ""
+    serialized = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return f"v{FAILURE_FINGERPRINT_VERSION}:" + hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:20]
 
 
 def tool_env():
@@ -27,6 +129,7 @@ def truncate(text, limit):
 
 
 def parse_tests(text):
+    text = _normalize_test_output(text)
     def bucket():
         return {"passed": 0, "failed": 0, "failed_names": []}
     core, extra = bucket(), bucket()
@@ -39,7 +142,7 @@ def parse_tests(text):
         if re.match(r"\s*Doc-tests", line):
             cur = "doctests"
             continue
-        b = extra if "tests/extra_" in cur else core
+        b = extra if "tests/extra_" in cur.replace("\\", "/") else core
         m = re.match(r"test result: \w+\. (\d+) passed; (\d+) failed", line)
         if m:
             b["passed"] += int(m.group(1))
@@ -54,8 +157,8 @@ def parse_tests(text):
     for b in (core, extra):
         b["total"] = b["passed"] + b["failed"]
     excerpts = []
-    for m in re.finditer(r"---- (.+?) stdout ----\n(.*?)(?=\n---- |\nfailures:|\Z)", text, re.S):
-        excerpts.append(f"[{m.group(1)}]\n{m.group(2).strip()[:700]}")
+    for m in TEST_OUTPUT_BLOCK.finditer(text):
+        excerpts.append(f"[{m.group('test').strip()}]\n{m.group('body').strip()[:700]}")
     return core, extra, excerpts[:8]
 
 
@@ -337,10 +440,30 @@ class Harness:
         heads = sorted(set(re.findall(r"^error(?:\[E\d+\])?: .*$", out, re.M)))
         return rc == 0, out, heads
 
-    def test(self, target=None, test_filter=None):
+    def _test_target_kind(self, target):
+        """Prefer declared integration tests, otherwise recognize binary unit tests."""
+        try:
+            manifest = tomllib.loads((self.crate / "Cargo.toml").read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError):
+            manifest = {}
+        package = manifest.get("package", {})
+        integration = any(item.get("name") == target for item in manifest.get("test", []))
+        integration |= package.get("autotests", True) and any(path.is_file() for path in (
+            self.crate / "tests" / f"{target}.rs", self.crate / "tests" / target / "main.rs"))
+        binary = any(item.get("name") == target for item in manifest.get("bin", []))
+        binary |= package.get("autobins", True) and any(path.is_file() for path in (
+            self.crate / "src" / "bin" / f"{target}.rs",
+            self.crate / "src" / "bin" / target / "main.rs"))
+        binary |= (package.get("autobins", True) and package.get("name") == target
+                   and (self.crate / "src" / "main.rs").is_file())
+        return "bin" if binary and not integration else "test"
+
+    def test(self, target=None, test_filter=None, target_kind=None):
         args = ["test", "--no-fail-fast"]
+        if target_kind is not None and (target_kind not in {"bin", "test"} or not target):
+            raise ValueError("target_kind requires a target and must be bin or test")
         if target:
-            args.extend(["--test", target])
+            args.extend(["--" + (target_kind or self._test_target_kind(target)), target])
         if test_filter:
             args.extend(["--", test_filter])
         rc, out = self.cargo(args, timeout=self.cfg.get("cargo_test_timeout_seconds"))
@@ -458,12 +581,14 @@ class Harness:
         r = {"build_ok": False, "build_text": "", "build_errors": [], "core": None, "extra": None,
              "excerpts": [], "test_text": "", "clippy": None, "clippy_samples": [], "unsafe": None,
              "test_rc": None, "test_timed_out": False, "assertion_diagnostics": None,
+             "failure_details": [], "failure_fingerprint_version": FAILURE_FINGERPRINT_VERSION,
              "interface_missing": self.interface_missing()}
         r["build_ok"], r["build_text"], r["build_errors"] = self.build()
         if r["build_ok"]:
             rc, out, core, extra, excerpts = self.test()
             r.update(test_rc=rc, test_timed_out=(rc == 124), test_text=out,
-                     core=core, extra=extra, excerpts=excerpts)
+                     core=core, extra=extra, excerpts=excerpts,
+                     failure_details=test_failure_details(out))
             if core["failed"] > 0 and rc != 124:
                 r["assertion_diagnostics"] = self.diagnose_assertions()
         # Interface conformance is part of the required benchmark contract. Do
@@ -478,13 +603,7 @@ class Harness:
             r["clippy"], r["clippy_samples"] = self.clippy()
         if full or safety:
             r["unsafe"] = self.unsafe_metrics()
-        if not r["build_ok"]:
-            sig_src = r["build_errors"]
-        elif r["test_timed_out"]:
-            sig_src = ["TEST_TIMEOUT"]
-        else:
-            sig_src = r["core"]["failed_names"] if r["core"] else []
-        r["sig"] = hashlib.md5("\n".join(sig_src).encode()).hexdigest()[:10] if sig_src else ""
+        r["sig"] = failure_fingerprint(r)
         r["score"] = self.score(r)
         self.last_report = r
         return r
@@ -517,7 +636,14 @@ class Harness:
             names = c["failed_names"] + e["failed_names"] if e else c["failed_names"]
             if names:
                 parts.append("Failing tests: " + ", ".join(names[:20]))
-            if r["excerpts"]:
+            details = r.get("failure_details") or []
+            if details:
+                parts.append("Failure evidence:\n  " + "\n  ".join(
+                    f"{detail.get('test', '?')} at {detail.get('location') or 'unknown location'}: "
+                    + truncate(detail.get("message", ""), 700)
+                    for detail in details[:8]
+                ))
+            elif r["excerpts"]:
                 parts.append("Failure output:\n" + truncate("\n\n".join(r["excerpts"]), limit))
             diag = r.get("assertion_diagnostics")
             if diag and diag.get("status") == "complete":

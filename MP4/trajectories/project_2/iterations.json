@@ -2,9 +2,21 @@
   {
     "iteration": 1,
     "phase": "A",
-    "build_ok": false,
-    "core": null,
-    "extra": null,
+    "build_ok": true,
+    "core": {
+      "passed": 0,
+      "failed": 1,
+      "failed_names": [
+        "unittests src\\bin\\test.rs::test_card_operations"
+      ],
+      "total": 1
+    },
+    "extra": {
+      "passed": 0,
+      "failed": 0,
+      "failed_names": [],
+      "total": 0
+    },
     "clippy": null,
     "unsafe": {
       "unsafe_lines": 0,
@@ -15,7 +27,22 @@
       "unsafe_fns": 0,
       "source": "builtin-estimate"
     },
-    "score": null
+    "score": null,
+    "sig": "v2:3e25db51a91be8649492",
+    "failure_fingerprint_version": 2,
+    "failure_details": [
+      {
+        "test": "unittests src/bin/test.rs::test_card_operations",
+        "location": "src/bin/test.rs:147:5",
+        "message": "assertion `left == right` failed left: R2 right: R9",
+        "actual": "R2",
+        "expected": "R9"
+      }
+    ],
+    "interface_missing": [
+      "pubfnappend_into_collection(self,Self)->Self",
+      "pubfninsert_into_collection(self,Option<Card>,CardSorter)->Self"
+    ]
   },
   {
     "iteration": 2,
@@ -45,7 +72,22 @@
       "unsafe_fns": 0,
       "source": "builtin-estimate"
     },
-    "score": null
+    "score": null,
+    "sig": "v2:3e25db51a91be8649492",
+    "failure_fingerprint_version": 2,
+    "failure_details": [
+      {
+        "test": "unittests src/bin/test.rs::test_card_operations",
+        "location": "src/bin/test.rs:147:5",
+        "message": "assertion `left == right` failed left: R2 right: R9",
+        "actual": "R2",
+        "expected": "R9"
+      }
+    ],
+    "interface_missing": [
+      "pubfnappend_into_collection(self,Self)->Self",
+      "pubfninsert_into_collection(self,Option<Card>,CardSorter)->Self"
+    ]
   },
   {
     "iteration": 3,
@@ -75,96 +117,21 @@
       "unsafe_fns": 0,
       "source": "builtin-estimate"
     },
-    "score": null
-  },
-  {
-    "iteration": 4,
-    "phase": "A",
-    "build_ok": true,
-    "core": {
-      "passed": 0,
-      "failed": 1,
-      "failed_names": [
-        "unittests src\\bin\\test.rs::test_card_operations"
-      ],
-      "total": 1
-    },
-    "extra": {
-      "passed": 0,
-      "failed": 0,
-      "failed_names": [],
-      "total": 0
-    },
-    "clippy": null,
-    "unsafe": {
-      "unsafe_lines": 0,
-      "unsafe_calls": 0,
-      "unsafe_casts": 0,
-      "pointer_arithmetic": 0,
-      "unsafe_blocks": 0,
-      "unsafe_fns": 0,
-      "source": "builtin-estimate"
-    },
-    "score": null
-  },
-  {
-    "iteration": 5,
-    "phase": "A",
-    "build_ok": true,
-    "core": {
-      "passed": 0,
-      "failed": 1,
-      "failed_names": [
-        "unittests src\\bin\\test.rs::test_card_operations"
-      ],
-      "total": 1
-    },
-    "extra": {
-      "passed": 0,
-      "failed": 0,
-      "failed_names": [],
-      "total": 0
-    },
-    "clippy": null,
-    "unsafe": {
-      "unsafe_lines": 0,
-      "unsafe_calls": 0,
-      "unsafe_casts": 0,
-      "pointer_arithmetic": 0,
-      "unsafe_blocks": 0,
-      "unsafe_fns": 0,
-      "source": "builtin-estimate"
-    },
-    "score": null
-  },
-  {
-    "iteration": 6,
-    "phase": "A",
-    "build_ok": true,
-    "core": {
-      "passed": 0,
-      "failed": 1,
-      "failed_names": [
-        "unittests src\\bin\\test.rs::test_card_operations"
-      ],
-      "total": 1
-    },
-    "extra": {
-      "passed": 0,
-      "failed": 0,
-      "failed_names": [],
-      "total": 0
-    },
-    "clippy": null,
-    "unsafe": {
-      "unsafe_lines": 0,
-      "unsafe_calls": 0,
-      "unsafe_casts": 0,
-      "pointer_arithmetic": 0,
-      "unsafe_blocks": 0,
-      "unsafe_fns": 0,
-      "source": "builtin-estimate"
-    },
-    "score": null
+    "score": null,
+    "sig": "v2:4a8540b0cd5e58857cb5",
+    "failure_fingerprint_version": 2,
+    "failure_details": [
+      {
+        "test": "unittests src/bin/test.rs::test_card_operations",
+        "location": "src/bin/test.rs:46:5",
+        "message": "assertion `left == right` failed left: SpadeAce right: Heart9",
+        "actual": "SpadeAce",
+        "expected": "Heart9"
+      }
+    ],
+    "interface_missing": [
+      "pubfnappend_into_collection(self,Self)->Self",
+      "pubfninsert_into_collection(self,Option<Card>,CardSorter)->Self"
+    ]
   }
 ]

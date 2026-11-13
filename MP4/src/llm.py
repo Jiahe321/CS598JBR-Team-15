@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import time
 import urllib.error
@@ -24,6 +25,7 @@ class LLM:
         self.logger = logger
         self.key = os.environ.get(cfg["api_key_env"], "")
         self.usage = {"prompt": 0, "completion": 0, "calls": 0, "requests": 0}
+        self._prompt_tokens_per_byte = 1 / 3
 
     @property
     def total_tokens(self):
@@ -42,7 +44,7 @@ class LLM:
         for model in models:
             try:
                 return self._call(model, messages, max_tokens, temperature)
-            except RequestBudgetReached:
+            except (RequestBudgetReached, TokenBudgetReached):
                 raise
             except LLMError as e:
                 last = e
@@ -69,6 +71,9 @@ class LLM:
                 body["reasoning"]["max_tokens"] = min(
                     body["reasoning"]["max_tokens"], max(1, max_tokens // 2))
         data = json.dumps(body).encode()
+        message_bytes = len(json.dumps(messages, ensure_ascii=False).encode("utf-8"))
+        # Estimate from observed usage with headroom. This is a preflight guard,
+        # not an exact tokenizer or a replacement for provider usage accounting.
         headers = {
             "Authorization": f"Bearer {self.key}",
             "Content-Type": "application/json",
@@ -78,21 +83,32 @@ class LLM:
         retries = max(1, int(cfg.get("max_retries", 1)))
         request_budget = cfg.get("max_llm_requests_per_run")
         for attempt in range(retries):
+            estimated_prompt = math.ceil(message_bytes * self._prompt_tokens_per_byte * 1.15) + 64 * len(messages)
+            token_budget = cfg.get("max_total_tokens")
+            if token_budget is not None:
+                remaining = int(token_budget) - self.total_tokens
+                if estimated_prompt + int(body["max_tokens"]) > remaining:
+                    raise TokenBudgetReached(
+                        "token budget would be exceeded by the next request "
+                        f"(used={self.total_tokens}, remaining={remaining}, "
+                        f"estimated_prompt={estimated_prompt}, max_completion={body['max_tokens']}, "
+                        f"limit={token_budget})")
             if request_budget is not None and self.usage["requests"] >= int(request_budget):
                 raise RequestBudgetReached(
                     f"model request budget reached ({self.usage['requests']}/{request_budget})")
             self.usage["requests"] += 1
             if self.logger:
-                self.logger.log("llm_request", model=model, request=self.usage["requests"], attempt=attempt + 1)
+                self.logger.log("llm_request", model=model, request=self.usage["requests"], attempt=attempt + 1,
+                                estimated_prompt_tokens=estimated_prompt, max_completion_tokens=body["max_tokens"])
             req = urllib.request.Request(cfg["base_url"].rstrip("/") + "/chat/completions",
                                          data=data, headers=headers)
             try:
                 with urllib.request.urlopen(req, timeout=cfg["timeout_seconds"]) as r:
                     out = json.load(r)
             except urllib.error.HTTPError as e:
-                body = e.read()
-                err = f"HTTP {e.code}: {body[:300]!r}"
-                if e.code == 429 and self._is_daily_quota_error(body):
+                error_body = e.read()
+                err = f"HTTP {e.code}: {error_body[:300]!r}"
+                if e.code == 429 and self._is_daily_quota_error(error_body):
                     raise LLMError(f"provider daily request quota exhausted; stopped without retry ({err})")
                 if e.code in (408, 429, 500, 502, 503, 504) and attempt + 1 < retries:
                     delay = self._retry_delay(attempt, e.headers)
@@ -137,6 +153,9 @@ class LLM:
                     continue
                 break
             u = out.get("usage") or {}
+            if u.get("prompt_tokens") and message_bytes:
+                self._prompt_tokens_per_byte = max(self._prompt_tokens_per_byte,
+                                                  u["prompt_tokens"] / message_bytes)
             self.usage["prompt"] += u.get("prompt_tokens", 0)
             self.usage["completion"] += u.get("completion_tokens", 0)
             self.usage["calls"] += 1

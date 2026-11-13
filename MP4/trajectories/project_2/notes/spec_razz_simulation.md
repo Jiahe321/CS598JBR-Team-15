@@ -1,114 +1,43 @@
-# Spec: `src/razz_simulation.rs` (from `c/razz_simulation.c`, `c/razz_simulation.h`)
-
-Items live inside `pub mod razz_simulation { ... }`, which does
-`use super::*;` with `use crate::card::card::{Card, CardDeck, CardHand, CardRank};` at the top of the
-file. Keep every signature.
+# Spec: `razz_simulation` module (c/razz_simulation.c, c/razz_simulation.h -> src/razz_simulation.rs)
 
 ## Constants
+`RAZZ_CARD_IN_HAND_COUNT = 7` (razz_simulation.c:24).
 
-`RAZZ_CARD_IN_HAND_COUNT = 7` (C `#define`). Each player is dealt 7 cards.
+## `DecidedCards` (razz_simulation.h:33-39)
+Rust: `{ my_card_count: u8, my_cards: [Option<Card>;3], opponent_card_count: u8, opponent_cards: [Option<Card>;7] }`. Matches C layout (3 my cards, 7 opponent cards).
 
-## `DecidedCards`
+## `strip_deck(deck, decided_cards)` (razz_simulation.c:156-174)
+For `i in 0..my_card_count`: `strip_card_from_deck(get_card_suit_rank(my_cards[i]), deck)`. Then for `i in 0..opponent_card_count`: same for `opponent_cards[i]`. Precondition: no duplicates among decided cards (caller ensures). Rust: iterate `my_cards[..my_card_count]` and `opponent_cards[..opponent_card_count]`, calling `deck.strip_card_from_deck(csr)` where `csr = card.get_card_suit_rank()`.
 
-```rust
-pub struct DecidedCards {
-    pub my_card_count: u8,
-    pub my_cards: [Option<Card>; 3],
-    pub opponent_card_count: u8,
-    pub opponent_cards: [Option<Card>; 7],
-}
-```
-Mirrors C `struct decided_cards` (`const card *` → `Option<Card>`). Only the first
-`my_card_count` / `opponent_card_count` entries are meaningful.
+## `complete_hand(my_hand, decided_cards, deck)` (razz_simulation.c:34-51)
+For `i in 0..my_card_count`: `insert_into_hand(my_hand, my_cards[i])`. Then `end = 7 - my_card_count`; for `i in 0..end`: `insert_into_hand(my_hand, deal_from_deck(deck))`. Rust: insert decided cards (as `&Option<Card>`), then deal `7 - my_card_count` cards from deck and insert each. Note: `insert_into_hand` no-ops if hand full (max=7), so if `my_card_count` > 7 it would overflow — but max is 3.
 
-## `pub type RankListener<T> = fn(&mut T, CardRank);`
+## `simulate_razz_game(decided_cards, game_count, arg, listener) -> i32` (razz_simulation.c:176-215)
+1. `my_hand = create_hand(7, sort_card_by_rank)`; if None -> return 1 (print error).
+2. For `i in 0..game_count`:
+   - `deck = create_shuffled_deck()`; if None -> return 1.
+   - `strip_deck(deck, decided_cards)`.
+   - `complete_hand(my_hand, decided_cards, deck)`.
+   - `listener(arg, get_razz_rank(my_hand))`.
+   - `reset_hand(my_hand)`; destroy deck.
+3. Destroy hand; return 0.
 
-C `typedef void (*rank_listener)(void *arg, enum card_rank r)`. `void *arg` → generic `&mut T`.
+Rust: `simulate_razz_game<T>(decided_cards, game_count, arg: &mut T, listener: RankListener<T>) -> i32`. Same loop; `listener(arg, rank)`. Return 0 on success, 1 on hand/deck creation failure (creation never fails in Rust, so effectively always 0).
 
-## `strip_deck(deck: &mut CardDeck, decided_cards: &DecidedCards)`
+## `get_razz_rank(hand) -> CardRank` (razz_simulation.c:104-147) — internal, must be reproduced
+1. (debug print — omit in Rust.)
+2. `iterate_hand(hand, duplicated_rank_remover)` — removes consecutive duplicate ranks. `duplicated_rank_remover` (razz_simulation.c:54-74): tracks `prev_rank`; at `pos==0` set `prev_rank=curr`, Continue; if `prev_rank==curr` -> `RemoveAndContinue`; else `prev_rank=curr`, Continue. Because hand is sorted ascending by rank, this removes all but the first of each equal-rank run. **Rust**: since `CardIterator` is a plain `fn` (no captured state), reimplement directly: walk the hand's ordered cards, keep first of each rank run, remove the rest (or build a filtered list). Equivalent: dedupe consecutive equal ranks in the sorted hand.
+3. `cards_count = count_cards_in_hand(hand)`. If `< 5` -> return `InvalidRank` (too many pairs).
+4. `iterate_hand(hand, length_trimmer)` — `length_trimmer` (razz_simulation.c:76-86): if `pos >= 5` -> `RemoveAndContinue`, else Continue. Keeps first 5 cards.
+5. `r = get_max_rank_of_hand(hand)`; return `r`.
 
-C:
-```
-for (i = 0; i < decided_cards->my_card_count; i++)
-  strip_card_from_deck(get_card_suit_rank(decided_cards->my_cards[i]), deck);
-for (i = 0; i < decided_cards->opponent_card_count; i++)
-  strip_card_from_deck(get_card_suit_rank(decided_cards->opponent_cards[i]), deck);
-```
-Rust: iterate `0..my_card_count as usize` over `my_cards`, then `0..opponent_card_count as usize`
-over `opponent_cards`, calling `deck.strip_card_from_deck(card.get_card_suit_rank())`.
-`strip_card_from_deck` is a no-op for already-stripped cards, so duplicates are harmless here.
-Precondition (from the C doc comment): the decided cards contain no duplicates.
+Net effect: sort hand by rank ascending, dedupe equal ranks, if fewer than 5 distinct ranks -> InvalidRank, else take the 5 lowest distinct ranks and return the highest of them (the 5th-lowest distinct rank). This is the Razz hand rank (R5..K or InvalidRank).
 
-## `complete_hand(my_hand: &mut CardHand, decided_cards: &DecidedCards, deck: &mut CardDeck)`
+## `listener` (razz.c:142-157) — CLI only, not in Rust interface
+Counts ranks in `[R5, K]`; ignores InvalidRank and out-of-range. Not required in Rust (the graded test supplies its own listener). Recorded for completeness.
 
-C:
-```
-end = decided_cards->my_card_count;
-for (i = 0; i < end; i++) insert_into_hand(my_hand, decided_cards->my_cards[i]);
-end = RAZZ_CARD_IN_HAND_COUNT - end;
-for (i = 0; i < end; i++) insert_into_hand(my_hand, deal_from_deck(deck));
-```
-Rust: insert the first `my_card_count` decided cards, then deal `7 - my_card_count` cards from the
-deck and insert each. `insert_into_hand` takes `&Option<Card>`; `deal_from_deck` returns
-`Option<Card>`, so pass `&deck.deal_from_deck()`.
-Note: the hand is created with `max = 7` and `sorter = sort_card_by_rank`, so it stays sorted by rank.
+## `process_args` (razz.c:24-140) — CLI only, not in Rust interface
+Parses game count and ranks, assigns suits greedily (Spade first, then Heart, Diamond, Club) to avoid duplicates, strips from a temp deck. Not required in Rust.
 
-## `simulate_razz_game<T>(decided_cards, game_count, arg, listener) -> i32`
-
-C:
-```
-my_hand = create_hand(RAZZ_CARD_IN_HAND_COUNT, sort_card_by_rank);
-if (my_hand == NULL) { fprintf(stderr, ...); return 1; }
-for (i = 0; i < game_count; i++) {
-  deck = create_shuffled_deck();
-  if (deck == NULL) { ...; return 1; }
-  strip_deck(deck, decided_cards);
-  complete_hand(my_hand, decided_cards, deck);
-  listener(arg, get_razz_rank(my_hand));
-  reset_hand(my_hand);
-  destroy_deck(&deck);
-}
-destroy_hand(&my_hand);
-return 0;
-```
-Rust: `create_hand` always returns `Some`, so the first error path is unreachable; still return `0`
-on success. Loop `0..game_count`, each iteration: fresh shuffled deck, `strip_deck`, `complete_hand`,
-`listener(arg, get_razz_rank(my_hand))`, `reset_hand`. Return `0`.
-
-## `get_razz_rank(hand) -> CardRank` (C static, not in the Rust interface)
-
-C:
-```
-iterate_hand(hand, duplicated_rank_remover);   /* remove duplicate ranks, keeping the first */
-cards_count = count_cards_in_hand(hand);
-if (cards_count < 5) return INVALID_RANK;      /* too many pairs */
-iterate_hand(hand, length_trimmer);            /* keep only the first 5 cards */
-r = get_max_rank_of_hand(hand);
-return r;
-```
-- `duplicated_rank_remover(len, pos, c)`: uses a **function-local `static prev_rank`**. On `pos == 0`
-  it stores `prev_rank = get_card_rank(c)` and returns `CONTINUE`. Otherwise, if
-  `prev_rank == curr_rank` return `REMOVE_AND_CONTINUE`; else `prev_rank = curr_rank; return CONTINUE`.
-  Because the hand is sorted by rank, this removes all but the first card of each rank.
-  **Rust:** the `static` must become state owned by the iteration (e.g. a `Cell<CardRank>` captured by
-  a closure, or a hand-written loop). Do not use a global.
-- `length_trimmer(len, pos, c)`: `if (pos >= 5) return REMOVE_AND_CONTINUE; return CONTINUE;` — keeps
-  the first 5 cards.
-- `get_max_rank_of_hand` on the trimmed hand returns the largest rank among the 5 kept cards, i.e. the
-  **worst** (highest) rank of the best 5-card low hand. Since the hand is sorted ascending by rank,
-  this is the rank of the 5th card.
-- Return value range: `R5..=K` (per the C doc comment) or `INVALID_RANK` when the hand has fewer than
-  5 distinct ranks. `razz.c` buckets results into `rank_count[K - R5 + 1]`, i.e. indices
-  `R5..=K`, and prints `ranktostr(R5 + i)` with `rank_count[i] / game_count`.
-
-Since `get_razz_rank` is not part of the Rust interface, implement it as a private helper inside
-`simulate_razz_game` (or a private `fn` in the module).
-
-## Notes / unclear
-
-- The C `#ifndef NDEBUG` blocks print the hand and the rank; they are debug-only and must not be
-  reproduced (no stdout output from the Rust version).
-- The exact PRNG used by `create_shuffled_deck`/`deal_from_deck` is the highest-risk unknown; see
-  `spec_card.md` §PRNG. `simulate_razz_game` inherits it.
-- `razz.c`'s `process_args` (CLI parsing, suit assignment `csr = cs * RANK_COUNT + rank`, duplicate
-  detection) is not part of the Rust interface and is not graded.
+## Tests
+The graded test `src/bin/test.rs` exercises only the `card` module (no razz_simulation calls). `razz_simulation` functions must still compile and behave per above for any additional tests. No protected test asserts razz output values, so exact PRNG only matters for `card` distribution test.

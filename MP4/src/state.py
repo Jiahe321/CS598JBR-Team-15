@@ -1,10 +1,14 @@
-import hashlib
 import json
+import re
 import shutil
 from pathlib import Path
 
 
 class State:
+    @staticmethod
+    def _compatible_signature(signature):
+        return isinstance(signature, str) and re.fullmatch(r"v2:[0-9a-f]{20}", signature) is not None
+
     def __init__(self, crate, traj_dir, resume=False):
         self.crate = Path(crate)
         self.dir = Path(traj_dir)
@@ -12,7 +16,9 @@ class State:
         self.history = []
         history_file = self.dir / "iterations.json"
         if resume and history_file.is_file():
-            self.history = json.loads(history_file.read_text(encoding="utf-8"))
+            # Cleared logs can leave an empty file rather than deleting it.
+            history_text = history_file.read_text(encoding="utf-8-sig").strip()
+            self.history = json.loads(history_text) if history_text else []
             if not isinstance(self.history, list):
                 raise ValueError(f"Expected an iteration list in {history_file}")
         self.iteration_offset = len(self.history)
@@ -26,8 +32,6 @@ class State:
         trajectory = self.dir / "trajectory.jsonl"
         if not trajectory.is_file():
             return
-        last_failure_signature = ""
-        pending_analysis_signature = ""
         try:
             for line in trajectory.read_text(encoding="utf-8", errors="replace").splitlines():
                 try:
@@ -35,41 +39,40 @@ class State:
                 except json.JSONDecodeError:
                     continue
                 kind = event.get("kind")
-                if kind == "iteration":
-                    failed = (event.get("core") or {}).get("failed_names") or []
-                    last_failure_signature = (
-                        hashlib.md5("\n".join(failed).encode()).hexdigest()[:10] if failed else ""
-                    )
-                if kind == "reader_escalation" and event.get("failure_sig"):
-                    self.reader_reviewed_signatures.add(event["failure_sig"])
-                if kind == "failure_analysis_reviewed" and event.get("failure_sig"):
-                    self.failure_analysis_signatures.add(event["failure_sig"])
-                task = str(event.get("task", "")).lower()
-                if kind == "agent_start" and event.get("agent") == "reader" and last_failure_signature and (
-                    "writer is stuck" in task or "re-read the c" in task or "re-read the relevant c" in task
-                ):
-                    self.reader_reviewed_signatures.add(last_failure_signature)
-                if kind == "agent_start" and event.get("agent") == "tester" and task.startswith("analyze:"):
-                    pending_analysis_signature = last_failure_signature
-                if kind == "agent_end" and event.get("agent") == "tester":
-                    if pending_analysis_signature:
-                        self.failure_analysis_signatures.add(pending_analysis_signature)
-                    pending_analysis_signature = ""
+                if kind == "review_state_restored" and event.get("evidence_complete") is True:
+                    # Support review state carried in older per-run logs as well
+                    # as reviews recorded in the appended trajectory.
+                    for key, signatures in (
+                            ("reader_reviewed_signatures", self.reader_reviewed_signatures),
+                            ("failure_analysis_signatures", self.failure_analysis_signatures)):
+                        restored = event.get(key, [])
+                        if isinstance(restored, list):
+                            signatures.update(value for value in restored if self._compatible_signature(value))
+                    continue
+                signature = event.get("failure_sig")
+                # Old name-only identities and a started/escalated review do not prove
+                # that the current assertion received a completed, evidence-based review.
+                if not self._compatible_signature(signature) or event.get("evidence_complete") is not True:
+                    continue
+                if kind == "reader_reviewed":
+                    self.reader_reviewed_signatures.add(signature)
+                elif kind == "failure_analysis_reviewed":
+                    self.failure_analysis_signatures.add(signature)
         except OSError:
             return
 
     def reader_was_reviewed(self, signature):
-        return bool(signature) and signature in self.reader_reviewed_signatures
+        return self._compatible_signature(signature) and signature in self.reader_reviewed_signatures
 
     def mark_reader_reviewed(self, signature):
-        if signature:
+        if self._compatible_signature(signature):
             self.reader_reviewed_signatures.add(signature)
 
     def failure_was_analyzed(self, signature):
-        return bool(signature) and signature in self.failure_analysis_signatures
+        return self._compatible_signature(signature) and signature in self.failure_analysis_signatures
 
     def mark_failure_analyzed(self, signature):
-        if signature:
+        if self._compatible_signature(signature):
             self.failure_analysis_signatures.add(signature)
 
     def snapshot(self, label):
@@ -91,6 +94,10 @@ class State:
             "iteration": self.iteration_offset + it, "phase": phase, "build_ok": report["build_ok"],
             "core": report["core"], "extra": report["extra"],
             "clippy": report["clippy"], "unsafe": report["unsafe"], "score": report["score"],
+            "sig": report.get("sig", ""),
+            "failure_fingerprint_version": report.get("failure_fingerprint_version"),
+            "failure_details": report.get("failure_details", []),
+            "interface_missing": report.get("interface_missing", []),
         }
         self.history.append(entry)
         self.sigs.append(report["sig"])

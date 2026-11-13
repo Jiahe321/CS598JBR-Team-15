@@ -1,7 +1,7 @@
 {
   "toolchain": "nightly-2025-05-13",
   "max_iterations": 10,
-  "max_total_tokens": 500000,
+  "max_total_tokens": 750000,
   "max_llm_requests_per_run": 80,
   "max_invalid_path_actions": 2,
   "stall_rounds": 3,
@@ -13,7 +13,7 @@
   "reader_initial_read_limit": 18,
   "reader_focus_read_limit": 4,
   "writer_initial_read_limit": 12,
-  "writer_repair_read_limit": 8,
+  "writer_repair_read_limit": 16,
   "max_actions_per_reply": 8,
   "obs_limit_chars": 6000,
   "history_keep": 8,

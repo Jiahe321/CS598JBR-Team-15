@@ -39,7 +39,7 @@ class Workspace:
         kind, root, p, v = self.resolve(path)
         if not p.is_file():
             return f"ERROR: no such file: {path}"
-        lines = p.read_text(errors="replace").splitlines()
+        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
         s = max(int(start or 1), 1)
         e = int(end) if end else len(lines)
         body = "\n".join(f"{i + 1:5d}  {l}" for i, l in enumerate(lines[s - 1:e], start=s - 1))
@@ -73,7 +73,7 @@ class Workspace:
                                                if x.is_file() and x.suffix in TEXT_EXT and "target" not in x.parts)
         hits = []
         for f in files:
-            for i, line in enumerate(f.read_text(errors="replace").splitlines(), 1):
+            for i, line in enumerate(f.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
                 if rx.search(line):
                     hits.append(f"{f.relative_to(root)}:{i}: {line.strip()[:160]}")
                     if len(hits) >= 80:
@@ -88,14 +88,18 @@ class Workspace:
             return f"DENIED: {v} is a protected benchmark file (tests / Cargo.toml / interface config)"
         if not any(fnmatch.fnmatch(v, g) for g in write_globs):
             return f"DENIED: your role may only write: {', '.join(write_globs)}"
+        if kind == "crate" and p.suffix == ".rs" and not content.strip():
+            return "DENIED: refusing empty Rust source; provide the complete implementation"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
         return f"wrote {v} ({len(content.encode())} bytes, {content.count(chr(10))} lines)"
 
-    def run_cargo(self, cmd, role, target=None, test_filter=None):
+    def run_cargo(self, cmd, role, target=None, test_filter=None, target_kind=None):
         h = self.harness
-        if (target or test_filter) and cmd != "test":
-            return 'ERROR: target and filter are only valid with cmd="test"'
+        if (target or test_filter or target_kind) and cmd != "test":
+            return 'ERROR: target, target_kind and filter are only valid with cmd="test"'
+        if target_kind is not None and (target_kind not in {"bin", "test"} or not target):
+            return "ERROR: target_kind requires a target and must be bin or test"
         if target and not re.fullmatch(r"[A-Za-z0-9_-]+", target):
             return "ERROR: test target must contain only letters, digits, '_' or '-'"
         if test_filter and any(ch in test_filter for ch in "\0\r\n"):
@@ -108,12 +112,12 @@ class Workspace:
             return "cargo build: OK" if ok else truncate(out, self.cfg["obs_limit_chars"])
         if cmd == "test":
             if target or test_filter:
-                rc, out, _, _, _ = h.test(target=target, test_filter=test_filter)
+                rc, out, _, _, _ = h.test(target=target, test_filter=test_filter, target_kind=target_kind)
                 result_counts = re.findall(r"test result: .*?\b(\d+) passed; (\d+) failed;", out)
                 ran_tests = any(int(passed) + int(failed) > 0 for passed, failed in result_counts)
                 if rc == 124:
                     status = "TIMED OUT"
-                elif rc == 0 and result_counts and not ran_tests:
+                elif rc == 0 and not ran_tests:
                     status = "NO TESTS EXECUTED"
                 else:
                     status = "OK" if rc == 0 else f"FAILED (exit={rc})"
