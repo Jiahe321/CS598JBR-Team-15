@@ -1,0 +1,154 @@
+Running cargo newmetrics
+Testing sysroot consistency...
+Done
+Target name: razz_simulation
+     Removed 23 files, 3.1MiB total
+    Checking razz_simulation v0.1.0 (D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_2)
+Running cargo rustc
+warning: unused import: `CardSuitRank`
+ --> src\razz_simulation.rs:1:61
+  |
+1 | use crate::card::card::{Card, CardDeck, CardHand, CardRank, CardSuitRank};
+  |                                                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: field `prev` is never read
+   --> src\card.rs:234:9
+    |
+233 |     pub struct CardCollection {
+    |                -------------- field in this struct
+234 |         prev: Option<Box<CardCollection>>,
+    |         ^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+Pointer arithmetic: 0
+Unsafe lines: 0
+Unsafe calls: 0
+Unsafe casts: 0
+Total spans: 23616
+Unsafe ratio: 0
+Raw pointer dereferences: 0
+Raw pointer declarations: 0
+cargo rustc finished
+warning: `razz_simulation` (lib) generated 4 warnings (2 duplicates) (run `cargo fix --lib -p razz_simulation` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.42s
+Target name: test
+Running cargo rustc
+warning: unused import: `CardSuitRank`
+ --> src\razz_simulation.rs:1:61
+  |
+1 | use crate::card::card::{Card, CardDeck, CardHand, CardRank, CardSuitRank};
+  |                                                             ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: field `prev` is never read
+   --> src\card.rs:234:9
+    |
+233 |     pub struct CardCollection {
+    |                -------------- field in this struct
+234 |         prev: Option<Box<CardCollection>>,
+    |         ^^^^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+cargo rustc finished
+warning: `razz_simulation` (lib) generated 4 warnings (2 duplicates) (run `cargo fix --lib -p razz_simulation` to apply 1 suggestion)
+    Checking razz_simulation v0.1.0 (D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_2)
+Running cargo rustc
+warning: unused variable: `len`
+  --> src\bin\test.rs:17:29
+   |
+17 | fn test_sort_card_by_rank_1(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `len`
+  --> src\bin\test.rs:26:29
+   |
+26 | fn test_sort_card_by_rank_2(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`
+
+warning: unused variable: `len`
+  --> src\bin\test.rs:34:29
+   |
+34 | fn test_sort_card_by_rank_3(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`
+
+warning: unused variable: `len`
+  --> src\bin\test.rs:42:29
+   |
+42 | fn test_sort_card_by_rank_4(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`
+
+warning: unused variable: `len`
+  --> src\bin\test.rs:49:20
+   |
+49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |                    ^^^ help: if this is intentional, prefix it with an underscore: `_len`
+
+warning: unused variable: `pos`
+  --> src\bin\test.rs:49:30
+   |
+49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |                              ^^^ help: if this is intentional, prefix it with an underscore: `_pos`
+
+warning: unused variable: `c`
+  --> src\bin\test.rs:49:40
+   |
+49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |                                        ^ help: if this is intentional, prefix it with an underscore: `_c`
+
+warning: static `SEED3_DEALING_ORDER` is never used
+ --> src\bin\test.rs:2:8
+  |
+2 | static SEED3_DEALING_ORDER: [CardSuitRank; 52] = [
+  |        ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: function `test_sort_card_by_rank_1` is never used
+  --> src\bin\test.rs:17:4
+   |
+17 | fn test_sort_card_by_rank_1(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `test_sort_card_by_rank_2` is never used
+  --> src\bin\test.rs:26:4
+   |
+26 | fn test_sort_card_by_rank_2(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `test_sort_card_by_rank_3` is never used
+  --> src\bin\test.rs:34:4
+   |
+34 | fn test_sort_card_by_rank_3(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `test_sort_card_by_rank_4` is never used
+  --> src\bin\test.rs:42:4
+   |
+42 | fn test_sort_card_by_rank_4(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `test_empty_hand` is never used
+  --> src\bin\test.rs:49:4
+   |
+49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {
+   |    ^^^^^^^^^^^^^^^
+
+Pointer arithmetic: 0
+Unsafe lines: 0
+Unsafe calls: 0
+Unsafe casts: 0
+Total spans: 13093
+Unsafe ratio: 0
+Raw pointer dereferences: 0
+Raw pointer declarations: 0
+cargo rustc finished
+warning: `razz_simulation` (bin "test") generated 13 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.24s
+cargo newmetrics finished
