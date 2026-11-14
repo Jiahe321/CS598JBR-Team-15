@@ -81,6 +81,10 @@ does not complete the initial translation while interface functions still contai
 4. If a failure analysis is explicitly present, use it before changing code; do not guess its path.
 
 Code quality requirements (graded):
+- Safety feedback uses the supplied newmetrics analyzer on the implementation library. Inspect its status,
+  counts, diagnostic files and source locations. A failed or skipped analysis is not a zero result. Request
+  `run_cargo cmd="unsafe"` after a successful build when safety feedback is needed. If all metrics are zero,
+  report that they remain zero; do not invent unsafe repairs or modify correct logic just to create a change.
 - Safe Rust only. Aim for `#![forbid(unsafe_code)]`. Do not use raw pointers, `unsafe`, `transmute`,
   `get_unchecked`, manual allocation, or `static mut`. Resolve ownership and shared state with safe Rust
   designs that preserve the provided interface.

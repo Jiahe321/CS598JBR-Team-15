@@ -12,10 +12,22 @@ $pipelineConfigPath = Join-Path $mp4Root "configs\pipeline.json"
 $modelConfig = Get-Content -LiteralPath $modelConfigPath -Raw | ConvertFrom-Json
 $pipelineConfig = Get-Content -LiteralPath $pipelineConfigPath -Raw | ConvertFrom-Json
 $python = Get-Command python -ErrorAction SilentlyContinue
+$localPython = Join-Path $mp4Root ".venv\Scripts\python.exe"
+if (Test-Path -LiteralPath $localPython -PathType Leaf) {
+    $python = Get-Command $localPython
+}
 $rustup = Get-Command rustup -ErrorAction SilentlyContinue
 
 if (-not $python) { throw "Python was not found. Install Python 3 and add python.exe to PATH." }
 if (-not $rustup) { throw "rustup was not found. Install Rust with rustup and add it to PATH." }
+if (-not (Get-Command ([string]$pipelineConfig.c_compiler) -ErrorAction SilentlyContinue)) {
+    foreach ($compilerDir in @("C:\msys64\ucrt64\bin", "C:\msys64\mingw64\bin")) {
+        if (Test-Path -LiteralPath (Join-Path $compilerDir "$($pipelineConfig.c_compiler).exe")) {
+            $env:PATH = $compilerDir + [IO.Path]::PathSeparator + $env:PATH
+            break
+        }
+    }
+}
 if (-not (Get-Command ([string]$pipelineConfig.c_compiler) -ErrorAction SilentlyContinue)) {
     throw "C compiler '$($pipelineConfig.c_compiler)' was not found. Install GCC/Clang and add it to PATH."
 }
@@ -56,6 +68,10 @@ $platformArgs = @()
 if ($env:OS -eq "Windows_NT") {
     $hasMsvc = (Get-Command cl.exe -ErrorAction SilentlyContinue) -and
         (Get-Command link.exe -ErrorAction SilentlyContinue)
+    $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (-not $hasMsvc -and (Test-Path -LiteralPath $vswhere)) {
+        $hasMsvc = [bool](& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath)
+    }
     if (-not $hasMsvc) {
         $installedTargets = & $rustup.Source target list --installed --toolchain $toolchain
         if ($LASTEXITCODE -ne 0 -or -not ($installedTargets -contains "x86_64-pc-windows-gnu")) {

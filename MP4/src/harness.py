@@ -357,6 +357,8 @@ def interface_signatures(src_dir):
                 # Parameter names (including `mut name`) are not part of a Rust API type.
                 if re.fullmatch(r"(?:mut\s+)?[A-Za-z_][A-Za-z0-9_]*", name.strip()):
                     part = typ.strip()
+            elif part.strip() == "mut self":
+                part = "self"
             normalized.append(re.sub(r"\s+", "", part))
         suffix = re.sub(r"\s+", "", suffix.rstrip(","))
         prefix = re.sub(r"\s+", "", prefix)
@@ -404,6 +406,7 @@ class Harness:
         self.cfg = cfg
         self.interface_sigs = set()
         self.last_report = None
+        self.evaluation_count = 0
 
     def cargo(self, args, timeout=None):
         env = tool_env()
@@ -535,6 +538,12 @@ class Harness:
         for cat in CLIPPY_CATEGORIES:
             rc, out = self.cargo(["clippy", "--all-targets", "--all-features", "--message-format=json",
                                   "--", "-A", "clippy::all", "-W", f"clippy::{cat}"])
+            if self.cfg.get("evaluation_output_dir"):
+                from datetime import datetime, timezone
+                directory = Path(self.cfg["evaluation_output_dir"])
+                directory.mkdir(parents=True, exist_ok=True)
+                stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
+                (directory / f"clippy_{cat}_{stamp}.jsonl").write_text(out, encoding="utf-8")
             seen = set()
             for line in out.splitlines():
                 try:
@@ -556,28 +565,40 @@ class Harness:
             counts[cat] = len(seen)
         return counts, samples
 
-    def unsafe_metrics(self):
+    def unsafe_metrics(self, label="agent", skip_reason=None):
+        if self.cfg.get("unsafe_metrics_backend") == "newmetrics":
+            from safety_metrics import analyze
+            return analyze(self.crate, self.cfg, label, skip_reason)
         cmd = self.cfg.get("unsafe_metrics_cmd")
         if not cmd:
             return builtin_unsafe_metrics(self.crate / "src")
         full = [c.replace("{crate}", str(self.crate)) for c in cmd]
         try:
             p = subprocess.run(full, capture_output=True, text=True, timeout=120)
-            out = p.stdout + p.stderr
+            if p.returncode:
+                return {"source": "official-tool", "status": "failed", "exit_code": p.returncode,
+                        "error": truncate(p.stderr or p.stdout, 2000)}
+            out = p.stdout
         except (OSError, subprocess.TimeoutExpired) as e:
             return {"source": "official-tool-failed", "error": str(e)}
         try:
             data = json.loads(out)
+            if not isinstance(data, dict) or any(type(data.get(k)) is not int or data[k] < 0
+                    for k in ("unsafe_lines", "unsafe_calls", "unsafe_casts", "pointer_arithmetic")):
+                raise ValueError("missing or invalid safety metrics")
             data["source"] = "official-tool"
+            data["status"] = "ok"
             return data
         except ValueError:
-            return {"source": "official-tool", "raw": truncate(out, 2000)}
+            return {"source": "official-tool", "status": "failed", "raw": truncate(out, 2000)}
 
     def interface_missing(self):
         have = interface_signatures(self.crate / "src")
         return sorted(s for s in self.interface_sigs if s not in have)
 
-    def evaluate(self, full=False, safety=False):
+    def evaluate(self, full=False, safety=False, label=None):
+        self.evaluation_count += 1
+        label = label or f"evaluation_{self.evaluation_count:03d}"
         r = {"build_ok": False, "build_text": "", "build_errors": [], "core": None, "extra": None,
              "excerpts": [], "test_text": "", "clippy": None, "clippy_samples": [], "unsafe": None,
              "test_rc": None, "test_timed_out": False, "assertion_diagnostics": None,
@@ -601,10 +622,18 @@ class Harness:
         r["extra_ok"] = bool(r["extra"] is None or r["extra"]["failed"] == 0)
         if full and r["build_ok"]:
             r["clippy"], r["clippy_samples"] = self.clippy()
-        if full or safety:
-            r["unsafe"] = self.unsafe_metrics()
+        if full or safety or self.cfg.get("unsafe_metrics_every_iteration", False):
+            r["unsafe"] = self.unsafe_metrics(label, None if r["build_ok"] else "build failed")
         r["sig"] = failure_fingerprint(r)
         r["score"] = self.score(r)
+        if self.cfg.get("evaluation_output_dir"):
+            from datetime import datetime, timezone
+            directory = Path(self.cfg["evaluation_output_dir"])
+            directory.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
+            artifact = directory / f"{label}_{stamp}.json"
+            r["evaluation_artifact"] = str(artifact)
+            artifact.write_text(json.dumps(r, indent=2) + "\n", encoding="utf-8")
         self.last_report = r
         return r
 
@@ -613,8 +642,10 @@ class Harness:
         if not r.get("clippy") or not r.get("unsafe"):
             return None
         u = r["unsafe"]
-        unsafe_total = sum(int(u.get(k, 0) or 0) for k in
-                           ("unsafe_lines", "unsafe_calls", "unsafe_casts", "pointer_arithmetic"))
+        keys = ("unsafe_lines", "unsafe_calls", "unsafe_casts", "pointer_arithmetic")
+        if u.get("status", "ok") != "ok" or any(type(u.get(k)) is not int or u[k] < 0 for k in keys):
+            return None
+        unsafe_total = sum(u[k] for k in keys)
         return sum(r["clippy"].values()) + unsafe_total
 
     def render(self, r, limit=6000):

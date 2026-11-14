@@ -23,6 +23,8 @@
   "protected_globs": ["src/bin/*", "Cargo.toml"],
   "protected_exceptions": ["tests/extra_*.rs"],
   "unsafe_metrics_cmd": null,
+  "unsafe_metrics_backend": "newmetrics",
+  "unsafe_metrics_timeout_seconds": 600,
   "unsafe_metrics_every_iteration": true,
   "c_compiler": "cc"
 }

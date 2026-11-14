@@ -116,6 +116,9 @@ def setup(args, llm=None):
     traj = root / "trajectories" / f"project_{args.project}"
     crate = root / "translations" / f"project_{args.project}"
     cfg["assertion_diagnostics_path"] = str(traj / "assertion_diagnostics.tsv")
+    cfg["run_id"] = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S_%fZ")
+    cfg["safety_output_dir"] = str(traj / "safety" / cfg["run_id"])
+    cfg["evaluation_output_dir"] = str(traj / "evaluations" / cfg["run_id"])
     template = Path(args.rust_template).resolve()
     if not (template / "Cargo.toml").is_file():
         sys.exit(f"--rust-template must be the CRUST-Bench Rust crate (Cargo.toml + interface + tests): {template}")
@@ -147,6 +150,8 @@ def setup(args, llm=None):
                    cargo_target=cfg.get("cargo_target"),
                    max_iterations=cfg.get("max_iterations"),
                    max_llm_requests=cfg.get("max_llm_requests_per_run"),
+                   safety_backend=cfg.get("unsafe_metrics_backend", "builtin-estimate"),
+                   run_id=cfg["run_id"],
                    token_budget=cfg.get("max_total_tokens"))
     ctx.logger.log("review_state_restored", evidence_complete=True,
                    reader_reviewed_signatures=sorted(ctx.state.reader_reviewed_signatures),
@@ -605,6 +610,7 @@ def run(args, llm=None):
             rep = h.evaluate(
                 full=(phase == "B"),
                 safety=cfg.get("unsafe_metrics_every_iteration", False),
+                label=f"iteration_{iteration_number:03d}",
             )
             if rep.get("assertion_diagnostics"):
                 log.log("assertion_diagnostics", **rep["assertion_diagnostics"])
@@ -640,6 +646,10 @@ def run(args, llm=None):
 
             if phase == "A":
                 if rep["core_ok"] and rep["extra_ok"]:
+                    if cfg.get("unsafe_metrics_backend") == "newmetrics" and (rep.get("unsafe") or {}).get("status") != "ok":
+                        status = "safety_analysis_failed"
+                        log.log("safety_analysis_failed", details=rep.get("unsafe"))
+                        break
                     if getattr(args, "stop_after_tests", False):
                         status = "tests_passed"
                         log.log("tests_passed", note="stopping before test generation or quality edits")
@@ -743,6 +753,10 @@ def run(args, llm=None):
                         status = outcome
                         break
             else:
+                if rep["build_ok"] and cfg.get("unsafe_metrics_backend") == "newmetrics" and (rep.get("unsafe") or {}).get("status") != "ok":
+                    status = "safety_analysis_failed"
+                    log.log("safety_analysis_failed", details=rep.get("unsafe"))
+                    break
                 if not rep["core_ok"] or not rep["extra_ok"]:
                     st.restore("good")
                     log.log("revert", reason="tests broke", it=iteration_number)
@@ -781,7 +795,7 @@ def run(args, llm=None):
         evaluation_complete = False
         try:
             if status != "interrupted":
-                final = h.evaluate(full=True)
+                final = h.evaluate(full=True, label="final")
                 evaluation_complete = True
         except KeyboardInterrupt:
             status = "interrupted"

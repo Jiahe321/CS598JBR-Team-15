@@ -22,6 +22,8 @@ class Workspace:
             kind, root, rel = "c", self.c_dir, v[2:]
         elif v == "notes" or v.startswith("notes/"):
             kind, root, rel = "notes", self.notes, v[6:]
+        elif v == "safety" or v.startswith("safety/"):
+            kind, root, rel = "safety", Path(self.cfg["safety_output_dir"]).resolve(), v[7:]
         else:
             kind, root, rel = "crate", self.crate, v
         p = (root / rel).resolve()
@@ -82,8 +84,8 @@ class Workspace:
 
     def write_file(self, path, content, write_globs):
         kind, root, p, v = self.resolve(path)
-        if kind == "c":
-            return "DENIED: the C project is read-only"
+        if kind in {"c", "safety"}:
+            return "DENIED: C source and safety evidence are read-only"
         if kind == "crate" and self._is_protected(v):
             return f"DENIED: {v} is a protected benchmark file (tests / Cargo.toml / interface config)"
         if not any(fnmatch.fnmatch(v, g) for g in write_globs):
@@ -130,7 +132,8 @@ class Workspace:
             counts, samples = h.clippy()
             return f"CLIPPY: {counts}\n" + "\n".join(samples[:30])
         if cmd == "unsafe":
-            return str(h.unsafe_metrics())
+            import json
+            return json.dumps(h.unsafe_metrics("agent_request"), indent=2)
         return "ERROR: cmd must be one of check|build|test|clippy|unsafe"
 
     def run_c_oracle(self, driver="notes/oracle.c", stdin=None):

@@ -1,6 +1,10 @@
 SAFETY AND IDIOM PASS. All CRUST tests currently pass. Your job now is to improve code quality WITHOUT
 changing behaviour.
 
+Safety measurements come from the supplied newmetrics analyzer. Check status before using counts;
+failed/skipped analysis does not prove safety. Read diagnostic files when nonzero findings remain.
+If primary metrics already equal zero, preserve that result and focus on justified Clippy improvements.
+
 Priorities, in order:
 1. Remove every `unsafe` block/fn, raw pointer, pointer cast, pointer arithmetic, `transmute` and manual
    allocation. Replace with `Vec<T>`, slices, `Option`, `Box`, indices into a `Vec`, or safe std APIs.

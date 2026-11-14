@@ -1,0 +1,39 @@
+warning: file `C:\Users\cyr\AppData\Local\Temp\mp4-newmetrics-9jseunmt\crate\src\bin\test2.rs` found to be present in multiple build targets:
+  * `bin` target `test2`
+  * `integration-test` target `test2`
+warning: file `C:\Users\cyr\AppData\Local\Temp\mp4-newmetrics-9jseunmt\crate\src\bin\test3.rs` found to be present in multiple build targets:
+  * `bin` target `test3`
+  * `integration-test` target `test3`
+warning: file `C:\Users\cyr\AppData\Local\Temp\mp4-newmetrics-9jseunmt\crate\src\bin\test1.rs` found to be present in multiple build targets:
+  * `bin` target `test1`
+  * `integration-test` target `test1`
+    Checking bigint v0.1.0 (C:\Users\cyr\AppData\Local\Temp\mp4-newmetrics-9jseunmt\crate)
+Running cargo rustc
+warning: value assigned to `q` is never read
+   --> src\bigint.rs:385:17
+    |
+385 |         let mut q = BigInt::from_str("0");
+    |                 ^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: value assigned to `t` is never read
+   --> src\bigint.rs:386:17
+    |
+386 |         let mut t = BigInt::from_str("0");
+    |                 ^
+    |
+    = help: maybe it is overwritten before being read?
+
+Pointer arithmetic: 0
+Unsafe lines: 0
+Unsafe calls: 0
+Unsafe casts: 0
+Total spans: 15552
+Unsafe ratio: 0
+Raw pointer dereferences: 0
+Raw pointer declarations: 0
+cargo rustc finished
+warning: `bigint` (lib) generated 4 warnings (2 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.81s

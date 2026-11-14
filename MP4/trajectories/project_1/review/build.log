@@ -1,0 +1,66 @@
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test3.rs` found to be present in multiple build targets:
+  * `bin` target `test3`
+  * `integration-test` target `test3`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test2.rs` found to be present in multiple build targets:
+  * `bin` target `test2`
+  * `integration-test` target `test2`
+warning: file `D:\UIUC\CS598\MP1\CS598JBR-Team-15\MP4\translations\project_1\src\bin\test1.rs` found to be present in multiple build targets:
+  * `bin` target `test1`
+  * `integration-test` target `test1`
+warning: value assigned to `q` is never read
+   --> src\bigint.rs:385:17
+    |
+385 |         let mut q = BigInt::from_str("0");
+    |                 ^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: value assigned to `t` is never read
+   --> src\bigint.rs:386:17
+    |
+386 |         let mut t = BigInt::from_str("0");
+    |                 ^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: `bigint` (lib) generated 2 warnings
+warning: unused import: `bigint::bigint::BigInt`
+ --> src\bin\test3.rs:1:5
+  |
+1 | use bigint::bigint::BigInt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: `bigint` (bin "test3") generated 1 warning (run `cargo fix --bin "test3"` to apply 1 suggestion)
+warning: unused import: `bigint::bigint::BigInt`
+ --> src\bin\test2.rs:1:5
+  |
+1 | use bigint::bigint::BigInt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused variable: `b`
+ --> src\bin\test3.rs:6:9
+  |
+6 |     let b = BigInt::from_int(1234567890);
+  |         ^ help: if this is intentional, prefix it with an underscore: `_b`
+  |
+  = note: `#[warn(unused_variables)]` on by default
+
+warning: function `factorial` is never used
+ --> src\bin\test1.rs:3:4
+  |
+3 | fn factorial(n: BigInt) -> BigInt {
+  |    ^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: `bigint` (bin "test2") generated 1 warning (run `cargo fix --bin "test2"` to apply 1 suggestion)
+warning: `bigint` (bin "test3" test) generated 1 warning
+warning: `bigint` (bin "test1") generated 1 warning
+warning: `bigint` (test "test3") generated 1 warning (1 duplicate)
+warning: `bigint` (lib test) generated 2 warnings (2 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.21s

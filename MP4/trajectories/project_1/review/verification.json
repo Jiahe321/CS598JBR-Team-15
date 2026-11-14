@@ -1,0 +1,51 @@
+{
+  "source_hashes": {
+    "src/bigint.rs": "d217b9e35a3d6bc6ea6e4b31915e95300408b9d3bdfa7b023fae50902ff5f212",
+    "src/lib.rs": "26ace1282f87d8b874aea3564085d3c274cbb1066f222649d60c74bc3862a21e",
+    "src/bin/test1.rs": "f2876727f1b16ba988c20310f198d913693498b2a6f5cd1fade12e89c3b4d8c2",
+    "src/bin/test2.rs": "ad9a91d0da3ced6bda7996537d68f3ff6d472a4f3d6e9c0338b6dbcb4d2c4b12",
+    "src/bin/test3.rs": "75483cbebdb646680e0c83ad4dd9338baa176fa25d556c7a469d807719f74759"
+  },
+  "checks": {
+    "build": {
+      "command": [
+        "C:\\Users\\cyr\\.cargo\\bin\\cargo.exe",
+        "+nightly-2025-05-13",
+        "build",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "log": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_1\\review\\build.log"
+    },
+    "test": {
+      "command": [
+        "C:\\Users\\cyr\\.cargo\\bin\\cargo.exe",
+        "+nightly-2025-05-13",
+        "test",
+        "--no-fail-fast"
+      ],
+      "exit_code": 0,
+      "log": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_1\\review\\test.log"
+    },
+    "clippy": {
+      "command": [
+        "C:\\Users\\cyr\\.cargo\\bin\\cargo.exe",
+        "+nightly-2025-05-13",
+        "clippy",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-W",
+        "clippy::correctness",
+        "-W",
+        "clippy::style",
+        "-W",
+        "clippy::complexity",
+        "-W",
+        "clippy::perf"
+      ],
+      "exit_code": 0,
+      "log": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_1\\review\\clippy.log"
+    }
+  }
+}

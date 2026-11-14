@@ -4,10 +4,19 @@ human-eval
 .env
 *.key
 *.pem
+.venv/
+
+MP4/CRUST_bench.zip
+MP4/CRUST_bench/
 
 target/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Local experiments and the compressed history saved before a fresh MP4 run.
+MP4/backups/
+MP4/runs/
+MP4-local-history-*.zip
 
 MP4/trajectories/*/notes/oracle_bin

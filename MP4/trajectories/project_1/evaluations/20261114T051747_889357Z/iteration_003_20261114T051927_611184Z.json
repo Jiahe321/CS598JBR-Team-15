@@ -1,0 +1,75 @@
+{
+  "build_ok": true,
+  "build_text": "warning: file `D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\translations\\project_1\\src\\bin\\test1.rs` found to be present in multiple build targets:\n  * `bin` target `test1`\n  * `integration-test` target `test1`\nwarning: file `D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\translations\\project_1\\src\\bin\\test2.rs` found to be present in multiple build targets:\n  * `bin` target `test2`\n  * `integration-test` target `test2`\nwarning: file `D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\translations\\project_1\\src\\bin\\test3.rs` found to be present in multiple build targets:\n  * `bin` target `test3`\n  * `integration-test` target `test3`\nwarning: value assigned to `q` is never read\n   --> src\\bigint.rs:384:17\n    |\n384 |         let mut q = BigInt::from_str(\"0\");\n    |                 ^\n    |\n    = help: maybe it is overwritten before being read?\n    = note: `#[warn(unused_assignments)]` on by default\n\nwarning: value assigned to `t` is never read\n   --> src\\bigint.rs:385:17\n    |\n385 |         let mut t = BigInt::from_str(\"0\");\n    |                 ^\n    |\n    = help: maybe it is overwritten before being read?\n\nwarning: `bigint` (lib) generated 2 warnings\nwarning: unused variable: `b`\n --> src\\bin\\test3.rs:6:9\n  |\n6 |     let b = BigInt::from_int(1234567890);\n  |         ^ help: if this is intentional, prefix it with an underscore: `_b`\n  |\n  = note: `#[warn(unused_variables)]` on by default\n\nwarning: `bigint` (test \"test3\") generated 1 warning\nwarning: function `factorial` is never used\n --> src\\bin\\test1.rs:3:4\n  |\n3 | fn factorial(n: BigInt) -> BigInt {\n  |    ^^^^^^^^^\n  |\n  = note: `#[warn(dead_code)]` on by default\n\nwarning: unused import: `bigint::bigint::BigInt`\n --> src\\bin\\test2.rs:1:5\n  |\n1 | use bigint::bigint::BigInt;\n  |     ^^^^^^^^^^^^^^^^^^^^^^\n  |\n  = note: `#[warn(unused_imports)]` on by default\n\nwarning: unused import: `bigint::bigint::BigInt`\n --> src\\bin\\test3.rs:1:5\n  |\n1 | use bigint::bigint::BigInt;\n  |     ^^^^^^^^^^^^^^^^^^^^^^\n  |\n  = note: `#[warn(unused_imports)]` on by default\n\nwarning: `bigint` (bin \"test1\") generated 1 warning\nwarning: `bigint` (bin \"test2\") generated 1 warning (run `cargo fix --bin \"test2\"` to apply 1 suggestion)\nwarning: `bigint` (bin \"test3\" test) generated 1 warning (1 duplicate)\nwarning: `bigint` (bin \"test3\") generated 1 warning (run `cargo fix --bin \"test3\"` to apply 1 suggestion)\nwarning: `bigint` (lib test) generated 2 warnings (2 duplicates)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.04s",
+  "build_errors": [],
+  "core": {
+    "passed": 16,
+    "failed": 0,
+    "failed_names": [],
+    "total": 16
+  },
+  "extra": {
+    "passed": 0,
+    "failed": 0,
+    "failed_names": [],
+    "total": 0
+  },
+  "excerpts": [],
+  "test_text": "warning: file `D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\translations\\project_1\\src\\bin\\test3.rs` found to be present in multiple build targets:\n  * `bin` target `test3`\n  * `integration-test` target `test3`\nwarning: file `D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\translations\\project_1\\src\\bin\\test1.rs` found to be present in multiple build targets:\n  * `bin` target `test1`\n  * `integration-test` target `test1`\nwarning: file `D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\translations\\project_1\\src\\bin\\test2.rs` found to be present in multiple build targets:\n  * `bin` target `test2`\n  * `integration-test` target `test2`\nwarning: value assigned to `q` is never read\n   --> src\\bigint.rs:384:17\n    |\n384 |         let mut q = BigInt::from_str(\"0\");\n    |                 ^\n    |\n    = help: maybe it is overwritten before being read?\n    = note: `#[warn(unused_assignments)]` on by default\n\nwarning: value assigned to `t` is never read\n   --> src\\bigint.rs:385:17\n    |\n385 |         let mut t = BigInt::from_str(\"0\");\n    |                 ^\n    |\n    = help: maybe it is overwritten before being read?\n\nwarning: `bigint` (lib) generated 2 warnings\nwarning: unused variable: `b`\n --> src\\bin\\test3.rs:6:9\n  |\n6 |     let b = BigInt::from_int(1234567890);\n  |         ^ help: if this is intentional, prefix it with an underscore: `_b`\n  |\n  = note: `#[warn(unused_variables)]` on by default\n\nwarning: unused import: `bigint::bigint::BigInt`\n --> src\\bin\\test3.rs:1:5\n  |\n1 | use bigint::bigint::BigInt;\n  |     ^^^^^^^^^^^^^^^^^^^^^^\n  |\n  = note: `#[warn(unused_imports)]` on by default\n\nwarning: function `factorial` is never used\n --> src\\bin\\test1.rs:3:4\n  |\n3 | fn factorial(n: BigInt) -> BigInt {\n  |    ^^^^^^^^^\n  |\n  = note: `#[warn(dead_code)]` on by default\n\nwarning: unused import: `bigint::bigint::BigInt`\n --> src\\bin\\test2.rs:1:5\n  |\n1 | use bigint::bigint::BigInt;\n  |     ^^^^^^^^^^^^^^^^^^^^^^\n  |\n  = note: `#[warn(unused_imports)]` on by default\n\nwarning: `bigint` (bin \"test3\" test) generated 1 warning\nwarning: `bigint` (bin \"test3\") generated 1 warning (run `cargo fix --bin \"test3\"` to apply 1 suggestion)\nwarning: `bigint` (test \"test3\") generated 1 warning (1 duplicate)\nwarning: `bigint` (bin \"test1\") generated 1 warning\nwarning: `bigint` (bin \"test2\") generated 1 warning (run `cargo fix --bin \"test2\"` to apply 1 suggestion)\nwarning: `bigint` (lib test) generated 2 warnings (2 duplicates)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.04s\n     Running unittests src\\lib.rs (target\\debug\\deps\\bigint-318413cebc292c8d.exe)\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running unittests src\\bin\\test1.rs (target\\debug\\deps\\test1-b8ed53f849abb2d5.exe)\n\nrunning 1 test\ntest test_factorial ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running unittests src\\bin\\test2.rs (target\\debug\\deps\\test2-339f83d51ea53b04.exe)\n\nrunning 1 test\ntest test_basic_operations ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running unittests src\\bin\\test3.rs (target\\debug\\deps\\test3-91599a869cd91913.exe)\n\nrunning 6 tests\ntest test1 ... ok\ntest test5 ... ok\ntest test3 ... ok\ntest test4 ... ok\ntest test2 ... ok\ntest test6 ... ok\n\ntest result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running src\\bin\\test1.rs (target\\debug\\deps\\test1-90ac7b6e6e7f3e65.exe)\n\nrunning 1 test\ntest test_factorial ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running src\\bin\\test2.rs (target\\debug\\deps\\test2-f71830d4b0d03dd6.exe)\n\nrunning 1 test\ntest test_basic_operations ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running src\\bin\\test3.rs (target\\debug\\deps\\test3-d804582290a91328.exe)\n\nrunning 6 tests\ntest test1 ... ok\ntest test4 ... ok\ntest test2 ... ok\ntest test3 ... ok\ntest test5 ... ok\ntest test6 ... ok\n\ntest result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n   Doc-tests bigint\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n",
+  "clippy": {
+    "correctness": 0,
+    "style": 4,
+    "complexity": 4,
+    "perf": 0
+  },
+  "clippy_samples": [
+    "clippy::should_implement_trait src\\bigint.rs:70: method `from_str` can be confused for the standard trait method `std::str::FromStr::from_str`",
+    "clippy::uninlined_format_args src\\bigint.rs:92: variables can be used directly in the `format!` string",
+    "clippy::uninlined_format_args src\\bigint.rs:578: variables can be used directly in the `format!` string",
+    "clippy::uninlined_format_args src\\bin\\test1.rs:20: variables can be used directly in the `format!` string",
+    "clippy::neg_cmp_op_on_partial_ord src\\bin\\test2.rs:16: the use of negated comparison operators on partially ordered types produces code that is hard to read and refactor, please consider using the `partial_cmp` method instead, to make it clear that the two values could be incomparable",
+    "clippy::neg_cmp_op_on_partial_ord src\\bin\\test2.rs:17: the use of negated comparison operators on partially ordered types produces code that is hard to read and refactor, please consider using the `partial_cmp` method instead, to make it clear that the two values could be incomparable",
+    "clippy::neg_cmp_op_on_partial_ord src\\bin\\test2.rs:23: the use of negated comparison operators on partially ordered types produces code that is hard to read and refactor, please consider using the `partial_cmp` method instead, to make it clear that the two values could be incomparable",
+    "clippy::neg_cmp_op_on_partial_ord src\\bin\\test2.rs:25: the use of negated comparison operators on partially ordered types produces code that is hard to read and refactor, please consider using the `partial_cmp` method instead, to make it clear that the two values could be incomparable"
+  ],
+  "unsafe": {
+    "source": "newmetrics",
+    "status": "ok",
+    "scope": "implementation-library",
+    "artifacts": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_1\\safety\\20261114T051747_889357Z\\iteration_003_20261114T051925_039068Z",
+    "source_hashes": {
+      "src/bigint.rs": "20f79a4d93494801e1777d3cc08cb6a27ef70abd3e52423a288a974be9b06ede",
+      "src/bin/test1.rs": "f2876727f1b16ba988c20310f198d913693498b2a6f5cd1fade12e89c3b4d8c2",
+      "src/bin/test2.rs": "ad9a91d0da3ced6bda7996537d68f3ff6d472a4f3d6e9c0338b6dbcb4d2c4b12",
+      "src/bin/test3.rs": "75483cbebdb646680e0c83ad4dd9338baa176fa25d556c7a469d807719f74759",
+      "src/lib.rs": "302bba315e1b184e904e821a210d08700edad60cf5be14e57aa0347cb82fb1b9",
+      "Cargo.toml": "64a060481c65f5e81ec950aaca77b1cdbd6d62791e7f2601f9e9edca3f1eed9e",
+      "Cargo.lock": "843833ce005cd09679acf1311c67296c50cd1510f01c4f53ce85abd37d4324f6"
+    },
+    "pointer_arithmetic": 0,
+    "unsafe_lines": 0,
+    "unsafe_calls": 0,
+    "unsafe_casts": 0,
+    "total_spans": 15485,
+    "raw_pointer_dereferences": 0,
+    "raw_pointer_declarations": 0,
+    "unsafe_ratio": 0.0,
+    "diagnostics": {
+      "newmetrics.log": "safety/iteration_003_20261114T051925_039068Z/newmetrics.log",
+      "unsafe_spans.txt": "safety/iteration_003_20261114T051925_039068Z/unsafe_spans.txt",
+      "decls.txt": "safety/iteration_003_20261114T051925_039068Z/decls.txt",
+      "derefs.txt": "safety/iteration_003_20261114T051925_039068Z/derefs.txt"
+    }
+  },
+  "test_rc": 0,
+  "test_timed_out": false,
+  "assertion_diagnostics": null,
+  "failure_details": [],
+  "failure_fingerprint_version": 2,
+  "interface_missing": [],
+  "core_ok": true,
+  "extra_ok": true,
+  "sig": "",
+  "score": 8,
+  "evaluation_artifact": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_1\\evaluations\\20261114T051747_889357Z\\iteration_003_20261114T051927_611184Z.json"
+}
