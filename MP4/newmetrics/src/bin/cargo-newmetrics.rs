@@ -230,8 +230,8 @@ fn main() {
             in_cargo_newmetrics();
             eprintln!("cargo newmetrics finished");
         },
-        // Check if arg is a path that ends with "/rustc"
-        arg if arg.ends_with("rustc") => {
+        // Cargo supplies rustc or a compiler path ending in rustc.exe on Windows.
+        arg if Path::new(arg).file_stem().and_then(|name| name.to_str()) == Some("rustc") => {
             eprintln!("Running cargo rustc");
             // This arm is executed when `cargo-newmetrics` runs `cargo rustc` with the `RUSTC_WRAPPER` env var set to itself:
             // dependencies get dispatched to `rustc`, the final test/binary to `newmetrics`.
