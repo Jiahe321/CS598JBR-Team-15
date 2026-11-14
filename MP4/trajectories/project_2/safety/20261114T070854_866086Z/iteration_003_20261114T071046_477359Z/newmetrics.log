@@ -1,0 +1,35 @@
+    Checking razz_simulation v0.1.0 (C:\Users\cyr\AppData\Local\Temp\mp4-newmetrics-7jcdsfcx\crate)
+Running cargo rustc
+warning: fields `prev`, `next`, and `c` are never read
+   --> src\card.rs:279:9
+    |
+278 |     pub struct CardCollection {
+    |                -------------- fields in this struct
+279 |         prev: Option<Box<CardCollection>>,
+    |         ^^^^
+280 |         next: Option<Box<CardCollection>>,
+    |         ^^^^
+281 |         c: Option<Card>,
+    |         ^
+    |
+    = note: `#[warn(dead_code)]` on by default
+
+warning: variable `_CardCollection` should have a snake case name
+   --> src\card.rs:428:55
+    |
+428 |         pub fn remove_from_hand_under_iter(&mut self, _CardCollection: &CardCollection, _pos: usize) {
+    |                                                       ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `_card_collection`
+    |
+    = note: `#[warn(non_snake_case)]` on by default
+
+Pointer arithmetic: 0
+Unsafe lines: 0
+Unsafe calls: 0
+Unsafe casts: 0
+Total spans: 22697
+Unsafe ratio: 0
+Raw pointer dereferences: 0
+Raw pointer declarations: 0
+cargo rustc finished
+warning: `razz_simulation` (lib) generated 4 warnings (2 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.52s

@@ -1,0 +1,28 @@
+{
+  "source": "newmetrics",
+  "status": "ok",
+  "scope": "implementation-library",
+  "artifacts": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_2\\safety\\20261114T070854_866086Z\\iteration_002_20261114T070923_739519Z",
+  "source_hashes": {
+    "src/bin/test.rs": "0da0063b8b6ddb7e6b361aab73b382947af83e749f2a873e89f02169172a1d45",
+    "src/card.rs": "9cd98d5a716004fad477dd590c24fbd195058a0586956fd17e7a71d55a2be332",
+    "src/lib.rs": "8887bc01f11f8e607594a3e1cecc81dfa309f402a136cdaad7a83d572e0016b0",
+    "src/razz_simulation.rs": "1733f555fb7d1dc314dbae047131f0d022e113f9734751bca751af29abca57ce",
+    "Cargo.toml": "771fbbfd8e3fa7ba61a9485c3ea69b6c6ca431189fae4159c6941edef0d6efb0",
+    "Cargo.lock": "f3fe4646d7239d7097b5bfeb251ca3906cf0b372a78e6d15f66990b8e0fd129c"
+  },
+  "pointer_arithmetic": 0,
+  "unsafe_lines": 0,
+  "unsafe_calls": 0,
+  "unsafe_casts": 0,
+  "total_spans": 22113,
+  "raw_pointer_dereferences": 0,
+  "raw_pointer_declarations": 0,
+  "unsafe_ratio": 0.0,
+  "diagnostics": {
+    "newmetrics.log": "safety/iteration_002_20261114T070923_739519Z/newmetrics.log",
+    "unsafe_spans.txt": "safety/iteration_002_20261114T070923_739519Z/unsafe_spans.txt",
+    "decls.txt": "safety/iteration_002_20261114T070923_739519Z/decls.txt",
+    "derefs.txt": "safety/iteration_002_20261114T070923_739519Z/derefs.txt"
+  }
+}

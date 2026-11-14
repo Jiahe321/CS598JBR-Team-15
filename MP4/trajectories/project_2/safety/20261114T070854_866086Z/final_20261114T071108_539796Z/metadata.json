@@ -1,0 +1,37 @@
+{
+  "started_at": "20261114T071108_539796Z",
+  "crate": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\translations\\project_2",
+  "label": "final",
+  "toolchain": "nightly-2025-05-13",
+  "scope": "implementation-library",
+  "source_hashes": {
+    "src/bin/test.rs": "0da0063b8b6ddb7e6b361aab73b382947af83e749f2a873e89f02169172a1d45",
+    "src/card.rs": "ba2bbbcff1c814ba686d687f5da6a089f7e9f238ffb266448203db4845a93c7d",
+    "src/lib.rs": "8887bc01f11f8e607594a3e1cecc81dfa309f402a136cdaad7a83d572e0016b0",
+    "src/razz_simulation.rs": "1733f555fb7d1dc314dbae047131f0d022e113f9734751bca751af29abca57ce",
+    "Cargo.toml": "771fbbfd8e3fa7ba61a9485c3ea69b6c6ca431189fae4159c6941edef0d6efb0",
+    "Cargo.lock": "f3fe4646d7239d7097b5bfeb251ca3906cf0b372a78e6d15f66990b8e0fd129c"
+  },
+  "target": "x86_64-pc-windows-msvc",
+  "wrapper": "C:\\Users\\cyr\\.cargo\\bin\\cargo-newmetrics.EXE",
+  "driver": "C:\\Users\\cyr\\.cargo\\bin\\newmetrics.EXE",
+  "command": [
+    "C:\\Users\\cyr\\.cargo\\bin\\rustup.EXE",
+    "run",
+    "nightly-2025-05-13",
+    "cargo",
+    "check",
+    "--lib",
+    "--target",
+    "x86_64-pc-windows-msvc",
+    "--locked"
+  ],
+  "environment_overrides": {
+    "CARGO_TARGET_DIR": "C:\\Users\\cyr\\AppData\\Local\\Temp\\mp4-newmetrics-d1olnrrm\\target",
+    "RUSTC_WRAPPER": "C:\\Users\\cyr\\.cargo\\bin\\cargo-newmetrics.EXE",
+    "METRICS_ARGS": "[]"
+  },
+  "exit_code": 0,
+  "status": "ok",
+  "finished_at": "2026-11-14T07:11:11.981738+00:00"
+}

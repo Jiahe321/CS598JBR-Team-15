@@ -20,17 +20,36 @@
   "clippy": {
     "correctness": 0,
     "style": 5,
-    "complexity": 0,
+    "complexity": 2,
     "perf": 2
   },
   "unsafe": {
+    "source": "newmetrics",
+    "status": "ok",
+    "scope": "implementation-library",
+    "artifacts": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_2\\safety\\20261114T070854_866086Z\\final_20261114T071108_539796Z",
+    "source_hashes": {
+      "src/bin/test.rs": "0da0063b8b6ddb7e6b361aab73b382947af83e749f2a873e89f02169172a1d45",
+      "src/card.rs": "ba2bbbcff1c814ba686d687f5da6a089f7e9f238ffb266448203db4845a93c7d",
+      "src/lib.rs": "8887bc01f11f8e607594a3e1cecc81dfa309f402a136cdaad7a83d572e0016b0",
+      "src/razz_simulation.rs": "1733f555fb7d1dc314dbae047131f0d022e113f9734751bca751af29abca57ce",
+      "Cargo.toml": "771fbbfd8e3fa7ba61a9485c3ea69b6c6ca431189fae4159c6941edef0d6efb0",
+      "Cargo.lock": "f3fe4646d7239d7097b5bfeb251ca3906cf0b372a78e6d15f66990b8e0fd129c"
+    },
+    "pointer_arithmetic": 0,
     "unsafe_lines": 0,
     "unsafe_calls": 0,
     "unsafe_casts": 0,
-    "pointer_arithmetic": 0,
-    "unsafe_blocks": 0,
-    "unsafe_fns": 0,
-    "source": "builtin-estimate"
+    "total_spans": 22697,
+    "raw_pointer_dereferences": 0,
+    "raw_pointer_declarations": 0,
+    "unsafe_ratio": 0.0,
+    "diagnostics": {
+      "newmetrics.log": "safety/final_20261114T071108_539796Z/newmetrics.log",
+      "unsafe_spans.txt": "safety/final_20261114T071108_539796Z/unsafe_spans.txt",
+      "decls.txt": "safety/final_20261114T071108_539796Z/decls.txt",
+      "derefs.txt": "safety/final_20261114T071108_539796Z/derefs.txt"
+    }
   },
   "assertion_diagnostics": {
     "status": "complete",
@@ -70,17 +89,14 @@
     ],
     "diagnostic_exit_code": 101
   },
-  "interface_missing": [
-    "pubfnappend_into_collection(self,Self)->Self",
-    "pubfninsert_into_collection(self,Option<Card>,CardSorter)->Self"
-  ],
+  "interface_missing": [],
   "core_ok": false,
   "extra_ok": true,
   "tokens": {
-    "prompt": 9897,
-    "completion": 1272,
-    "calls": 1,
-    "requests": 1
+    "prompt": 458348,
+    "completion": 16688,
+    "calls": 23,
+    "requests": 23
   },
   "evaluation_complete": true,
   "failure_details": [
@@ -96,7 +112,7 @@
   "stop_details": {
     "agent": "tester",
     "attempt": 1,
-    "summary": "SPEC_GAP: The first failure at src/bin/test.rs:46:5 (observed SpadeAce, expected Heart9) is caused by the protected Rust test omitting the `remove_from_hand(h, SPADE_ACE)` step that the C test performs at c/card_test.c:317 before iterating with `test_sort_card_by_rank_4`. The Rust setup (src/bin/test.rs:204-216) deals three cards into a 3-card hand and iterates without removing SpadeAce, so the first callback sees SpadeAce instead of Heart9. This is a contract gap in the protected test setup, not a translation bug in src/card.rs. No implementation change is warranted; the next step is to confirm whether the protected test is expected to mirror C exactly (and thus needs the removal step, which cannot be edited here).",
+    "summary": "SPEC_GAP: The first failure at src/bin/test.rs:46:5 (left=SpadeAce, right=Heart9) is caused by the protected Rust test omitting the `remove_from_hand(SPADE_ACE)` call that the C reference (c/card_test.c:317) performs before iterating with `test_sort_card_by_rank_4`. The Rust hand correctly retains SpadeAce (the 4th insert is a no-op at max=3), so iterate_hand visits SpadeAce at position 0 while the callback expects Heart9. This is a test-setup discrepancy, not a translation bug; no implementation change is warranted. Next investigation: confirm whether the protected test intends to exercise remove_from_hand here.",
     "evidence": {
       "completed": true,
       "wrote_paths": [

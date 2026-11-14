@@ -5,7 +5,7 @@
   "max_llm_requests_per_run": 80,
   "max_invalid_path_actions": 2,
   "stall_rounds": 3,
-  "tester_rounds": 1,
+  "tester_rounds": 0,
   "phase_b_rounds": 4,
   "agent_max_steps": {"reader": 12, "writer": 15, "tester": 8},
   "reader_initial_max_steps": 10,

@@ -1,0 +1,289 @@
+{
+  "build_ok": true,
+  "build_text": "warning: fields `prev`, `next`, and `c` are never read\n   --> src\\card.rs:279:9\n    |\n278 |     pub struct CardCollection {\n    |                -------------- fields in this struct\n279 |         prev: Option<Box<CardCollection>>,\n    |         ^^^^\n280 |         next: Option<Box<CardCollection>>,\n    |         ^^^^\n281 |         c: Option<Card>,\n    |         ^\n    |\n    = note: `#[warn(dead_code)]` on by default\n\nwarning: variable `_CardCollection` should have a snake case name\n   --> src\\card.rs:428:55\n    |\n428 |         pub fn remove_from_hand_under_iter(&mut self, _CardCollection: &CardCollection, _pos: usize) {\n    |                                                       ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `_card_collection`\n    |\n    = note: `#[warn(non_snake_case)]` on by default\n\nwarning: `razz_simulation` (lib) generated 2 warnings\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:17:29\n   |\n17 | fn test_sort_card_by_rank_1(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n   |\n   = note: `#[warn(unused_variables)]` on by default\n\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:26:29\n   |\n26 | fn test_sort_card_by_rank_2(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:34:29\n   |\n34 | fn test_sort_card_by_rank_3(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:42:29\n   |\n42 | fn test_sort_card_by_rank_4(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:49:20\n   |\n49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                    ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n\nwarning: unused variable: `pos`\n  --> src\\bin\\test.rs:49:30\n   |\n49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                              ^^^ help: if this is intentional, prefix it with an underscore: `_pos`\n\nwarning: unused variable: `c`\n  --> src\\bin\\test.rs:49:40\n   |\n49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                                        ^ help: if this is intentional, prefix it with an underscore: `_c`\n\nwarning: static `SEED3_DEALING_ORDER` is never used\n --> src\\bin\\test.rs:2:8\n  |\n2 | static SEED3_DEALING_ORDER: [CardSuitRank; 52] = [\n  |        ^^^^^^^^^^^^^^^^^^^\n  |\n  = note: `#[warn(dead_code)]` on by default\n\nwarning: function `test_sort_card_by_rank_1` is never used\n  --> src\\bin\\test.rs:17:4\n   |\n17 | fn test_sort_card_by_rank_1(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |    ^^^^^^^^^^^^^^^^^^^^^^^^\n\nwarning: function `test_sort_card_by_rank_2` is never used\n  --> src\\bin\\test.rs:26:4\n   |\n26 | fn test_sort_card_by_rank_2(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |    ^^^^^^^^^^^^^^^^^^^^^^^^\n\nwarning: function `test_sort_card_by_rank_3` is never used\n  --> src\\bin\\test.rs:34:4\n   |\n34 | fn test_sort_card_by_rank_3(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |    ^^^^^^^^^^^^^^^^^^^^^^^^\n\nwarning: function `test_sort_card_by_rank_4` is never used\n  --> src\\bin\\test.rs:42:4\n   |\n42 | fn test_sort_card_by_rank_4(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |    ^^^^^^^^^^^^^^^^^^^^^^^^\n\nwarning: function `test_empty_hand` is never used\n  --> src\\bin\\test.rs:49:4\n   |\n49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |    ^^^^^^^^^^^^^^^\n\nwarning: `razz_simulation` (bin \"test\") generated 13 warnings\nwarning: `razz_simulation` (bin \"test\" test) generated 8 warnings (8 duplicates)\nwarning: `razz_simulation` (lib test) generated 2 warnings (2 duplicates)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.04s",
+  "build_errors": [],
+  "core": {
+    "passed": 0,
+    "failed": 1,
+    "failed_names": [
+      "unittests src\\bin\\test.rs::test_card_operations"
+    ],
+    "total": 1
+  },
+  "extra": {
+    "passed": 0,
+    "failed": 0,
+    "failed_names": [],
+    "total": 0
+  },
+  "excerpts": [
+    "[test_card_operations]\nthread 'test_card_operations' panicked at src\\bin\\test.rs:147:5:\nassertion `left == right` failed\n  left: R6\n right: R9\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace"
+  ],
+  "test_text": "warning: fields `prev`, `next`, and `c` are never read\n   --> src\\card.rs:279:9\n    |\n278 |     pub struct CardCollection {\n    |                -------------- fields in this struct\n279 |         prev: Option<Box<CardCollection>>,\n    |         ^^^^\n280 |         next: Option<Box<CardCollection>>,\n    |         ^^^^\n281 |         c: Option<Card>,\n    |         ^\n    |\n    = note: `#[warn(dead_code)]` on by default\n\nwarning: variable `_CardCollection` should have a snake case name\n   --> src\\card.rs:428:55\n    |\n428 |         pub fn remove_from_hand_under_iter(&mut self, _CardCollection: &CardCollection, _pos: usize) {\n    |                                                       ^^^^^^^^^^^^^^^ help: convert the identifier to snake case: `_card_collection`\n    |\n    = note: `#[warn(non_snake_case)]` on by default\n\nwarning: `razz_simulation` (lib) generated 2 warnings\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:17:29\n   |\n17 | fn test_sort_card_by_rank_1(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n   |\n   = note: `#[warn(unused_variables)]` on by default\n\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:26:29\n   |\n26 | fn test_sort_card_by_rank_2(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:34:29\n   |\n34 | fn test_sort_card_by_rank_3(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:42:29\n   |\n42 | fn test_sort_card_by_rank_4(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                             ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n\nwarning: unused variable: `len`\n  --> src\\bin\\test.rs:49:20\n   |\n49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                    ^^^ help: if this is intentional, prefix it with an underscore: `_len`\n\nwarning: unused variable: `pos`\n  --> src\\bin\\test.rs:49:30\n   |\n49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                              ^^^ help: if this is intentional, prefix it with an underscore: `_pos`\n\nwarning: unused variable: `c`\n  --> src\\bin\\test.rs:49:40\n   |\n49 | fn test_empty_hand(len: u64, pos: u64, c: &Option<Card>) -> ItrAction {\n   |                                        ^ help: if this is intentional, prefix it with an underscore: `_c`\n\nwarning: static `SEED3_DEALING_ORDER` is never used\n --> src\\bin\\test.rs:2:8\n  |\n2 | static SEED3_DEALING_ORDER: [CardSuitRank; 52] = [\n  |        ^^^^^^^^^^^^^^^^^^^\n  |\n  = note: `#[warn(dead_code)]` on by default\n\nwarning: `razz_simulation` (bin \"test\" test) generated 8 warnings\nwarning: `razz_simulation` (lib test) generated 2 warnings (2 duplicates)\n    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s\n     Running unittests src\\lib.rs (target\\debug\\deps\\razz_simulation-f0442b55d250329b.exe)\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n     Running unittests src\\bin\\test.rs (target\\debug\\deps\\test-ba878f04577f9d52.exe)\n\nrunning 1 test\ntest test_card_operations ... FAILED\n\nfailures:\n\n---- test_card_operations stdout ----\n\nthread 'test_card_operations' panicked at src\\bin\\test.rs:147:5:\nassertion `left == right` failed\n  left: R6\n right: R9\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    test_card_operations\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\nerror: test failed, to rerun pass `--bin test`\n   Doc-tests razz_simulation\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\nerror: 1 target failed:\n    `--bin test`",
+  "clippy": null,
+  "clippy_samples": [],
+  "unsafe": {
+    "source": "newmetrics",
+    "status": "ok",
+    "scope": "implementation-library",
+    "artifacts": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_2\\safety\\20261114T070854_866086Z\\iteration_002_20261114T070923_739519Z",
+    "source_hashes": {
+      "src/bin/test.rs": "0da0063b8b6ddb7e6b361aab73b382947af83e749f2a873e89f02169172a1d45",
+      "src/card.rs": "9cd98d5a716004fad477dd590c24fbd195058a0586956fd17e7a71d55a2be332",
+      "src/lib.rs": "8887bc01f11f8e607594a3e1cecc81dfa309f402a136cdaad7a83d572e0016b0",
+      "src/razz_simulation.rs": "1733f555fb7d1dc314dbae047131f0d022e113f9734751bca751af29abca57ce",
+      "Cargo.toml": "771fbbfd8e3fa7ba61a9485c3ea69b6c6ca431189fae4159c6941edef0d6efb0",
+      "Cargo.lock": "f3fe4646d7239d7097b5bfeb251ca3906cf0b372a78e6d15f66990b8e0fd129c"
+    },
+    "pointer_arithmetic": 0,
+    "unsafe_lines": 0,
+    "unsafe_calls": 0,
+    "unsafe_casts": 0,
+    "total_spans": 22113,
+    "raw_pointer_dereferences": 0,
+    "raw_pointer_declarations": 0,
+    "unsafe_ratio": 0.0,
+    "diagnostics": {
+      "newmetrics.log": "safety/iteration_002_20261114T070923_739519Z/newmetrics.log",
+      "unsafe_spans.txt": "safety/iteration_002_20261114T070923_739519Z/unsafe_spans.txt",
+      "decls.txt": "safety/iteration_002_20261114T070923_739519Z/decls.txt",
+      "derefs.txt": "safety/iteration_002_20261114T070923_739519Z/derefs.txt"
+    }
+  },
+  "test_rc": 101,
+  "test_timed_out": false,
+  "assertion_diagnostics": {
+    "status": "complete",
+    "report": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_2\\assertion_diagnostics.tsv",
+    "assertion_sites": 116,
+    "executions": 104282,
+    "passed": 104204,
+    "failed": 78,
+    "failed_sites": [
+      {
+        "id": 1,
+        "line": 23,
+        "macro": "assert_eq",
+        "executions": 7,
+        "passed": 0,
+        "failed": 7,
+        "first_failure": "assertion `left == right` failed   left: Diamond3  right: SpadeAce"
+      },
+      {
+        "id": 2,
+        "line": 31,
+        "macro": "assert_eq",
+        "executions": 7,
+        "passed": 0,
+        "failed": 7,
+        "first_failure": "assertion `left == right` failed   left: Diamond3  right: SpadeAce"
+      },
+      {
+        "id": 3,
+        "line": 39,
+        "macro": "assert_eq",
+        "executions": 7,
+        "passed": 0,
+        "failed": 7,
+        "first_failure": "assertion `left == right` failed   left: Diamond3  right: SpadeAce"
+      },
+      {
+        "id": 4,
+        "line": 46,
+        "macro": "assert_eq",
+        "executions": 3,
+        "passed": 0,
+        "failed": 3,
+        "first_failure": "assertion `left == right` failed   left: Diamond7  right: Heart9"
+      },
+      {
+        "id": 71,
+        "line": 147,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R6  right: R9"
+      },
+      {
+        "id": 74,
+        "line": 151,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R6  right: R9"
+      },
+      {
+        "id": 77,
+        "line": 155,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R6  right: R10"
+      },
+      {
+        "id": 80,
+        "line": 159,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: R10"
+      },
+      {
+        "id": 83,
+        "line": 163,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: R10"
+      },
+      {
+        "id": 86,
+        "line": 167,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R8  right: Q"
+      },
+      {
+        "id": 89,
+        "line": 171,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: J  right: Q"
+      },
+      {
+        "id": 92,
+        "line": 175,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: J  right: Q"
+      },
+      {
+        "id": 93,
+        "line": 178,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: 7  right: 6"
+      },
+      {
+        "id": 95,
+        "line": 180,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: J  right: Q"
+      },
+      {
+        "id": 96,
+        "line": 183,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: 7  right: 5"
+      },
+      {
+        "id": 98,
+        "line": 185,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: J  right: R10"
+      },
+      {
+        "id": 106,
+        "line": 201,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R10  right: R9"
+      },
+      {
+        "id": 109,
+        "line": 209,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R7  right: R9"
+      },
+      {
+        "id": 110,
+        "line": 211,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R7  right: R9"
+      },
+      {
+        "id": 111,
+        "line": 213,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R9  right: R10"
+      },
+      {
+        "id": 112,
+        "line": 215,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: R9  right: R10"
+      },
+      {
+        "id": 113,
+        "line": 217,
+        "macro": "assert_eq",
+        "executions": 1,
+        "passed": 0,
+        "failed": 1,
+        "first_failure": "assertion `left == right` failed   left: 3  right: 2"
+      },
+      {
+        "id": 116,
+        "line": 235,
+        "macro": "assert_eq",
+        "executions": 52,
+        "passed": 16,
+        "failed": 36,
+        "first_failure": "assertion `left == right` failed   left: 1000  right: 1001"
+      }
+    ],
+    "diagnostic_exit_code": 101
+  },
+  "failure_details": [
+    {
+      "test": "unittests src/bin/test.rs::test_card_operations",
+      "location": "src/bin/test.rs:147:5",
+      "message": "assertion `left == right` failed left: R6 right: R9",
+      "actual": "R6",
+      "expected": "R9"
+    }
+  ],
+  "failure_fingerprint_version": 2,
+  "interface_missing": [],
+  "core_ok": false,
+  "extra_ok": true,
+  "sig": "v2:daa08c64bc0ed0ee7cb0",
+  "score": null,
+  "evaluation_artifact": "D:\\UIUC\\CS598\\MP1\\CS598JBR-Team-15\\MP4\\trajectories\\project_2\\evaluations\\20261114T070854_866086Z\\iteration_002_20261114T070928_076924Z.json"
+}
