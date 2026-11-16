@@ -373,10 +373,6 @@ The separate diagnostic harness recorded 104,223 successful and 56 failed
 assertion executions, across 104,279 executions. Those diagnostic counts are
 not independent Cargo tests and must not be substituted for the official 0/1 result.
 
-Project 1 attempted a C oracle for supplemental tests, but it failed because a
-required process was not found; no extra Rust tests were completed. Project 2
-disabled supplemental generation. Neither saved project has generated extra tests.
-
 ## Reading the evidence
 
 Each project retains these files:
